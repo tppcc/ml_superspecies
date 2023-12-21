@@ -49,6 +49,13 @@ def continue_chat(chat_id, user_input):
 def delete_chat(chat_id):
     openai.ChatCompletion.delete(chat_id)
 
+#Function to save the chat log
+def save_chat_log(tool_number, chat_log):
+    file_name = f"ai_tools_{tool_number}.log"
+    with open(file_name, 'a') as log_file:
+        log_file.write(chat_log)
+        log_file.write("\n\n")
+
 # Main function
 def main():
     file_path = 'tool_prompts.csv'  # Replace with your CSV file path
@@ -71,23 +78,30 @@ def main():
             print("Invalid input. Please enter a valid tool number.")
             continue
 
+        tool_number = tool_index + 1  # Tool number for log file naming
+
         # Start a chat with the selected tool's initial prompt
         chat_id = start_chat(selected_tool['prompt'])
+        chat_log = f"Tool: {selected_tool['tool_name']}\n"
 
         while True:
             user_input = input("Enter your prompt (or 'exit' to quit this tool): ")
 
             if user_input.lower() == 'exit':
                 delete_chat(chat_id)
+                save_chat_log(tool_number, chat_log)
                 break
 
             # Continue the chat with user input
             response = continue_chat(chat_id, user_input)
             print("AI Response:", response)
 
+            chat_log += f"User: {user_input}\nAI: {response}\n\n"
+
             additional_prompt = input("Do you want to add another prompt? (yes/no): ")
             if additional_prompt.lower() == 'no':
                 delete_chat(chat_id)
+                save_chat_log(tool_number, chat_log)
                 break
 
 if __name__ == "__main__":
