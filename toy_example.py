@@ -36,3 +36,6 @@ beta_loss = beta_div(V, nmf_base.forward().detach())
 plt.title("reconstructed V | Beta Div = %s" %(beta_loss))
 plt.show()
 plt.close()
+
+#########################
+#Operational

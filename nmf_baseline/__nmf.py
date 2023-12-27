@@ -9,13 +9,13 @@ import os
 # class nmf_object:         This class defines the nmf object and perform checks on the initialisation
 #                           of weight and inheritances. We follow the definition in torchnmf, where
 #                           the projection matrix to latent space is termed H instead of W, while the
-#                           latent represented data matrix is termed W, such that
+#                           latent represented data matrix is termed W (Line 22-23, 63-64), such that
 #                           argmin|| V(N,C) - H(N,R) * W(C,R)^T || is performed with beta divergence
 #                           minimisation routine
 ################
 
 
-class nmf_object:
+class NMF:
     def __init__(self, rank=None, inheritance=False, H_init=None, W_init=None, kernel_size=(1,1,1)):
         self.cwd = os.getcwd()
         self.inheritance = inheritance
@@ -50,7 +50,6 @@ class nmf_object:
 
     def trainer(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0):
         #Base NMF class
-
         self.BaseComponent = self.nmf()
         print("Training start, V has %s time component" %(V.shape[2]))
         for i in np.arange(V.shape[2]):
