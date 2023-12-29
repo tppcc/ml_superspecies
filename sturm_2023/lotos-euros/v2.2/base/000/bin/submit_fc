@@ -1,0 +1,360 @@
+#! /usr/bin/env python
+
+#
+# setup and submit forecast runs
+#
+#
+
+# -----------------------------------------------
+# external
+# -----------------------------------------------
+
+# standard modules:
+import sys
+import os
+import subprocess
+import optparse
+import logging
+import datetime
+
+
+# -----------------------------------------------
+# defaults
+# -----------------------------------------------
+
+# display info messages ?
+verbose_default = False
+
+# where to search for additional scripts ?
+# NOTE: this line will be (has been?) replaced by 'pycasso.py/Main'
+# with the actual path to the build directory:
+pypath_default = os.path.join( os.pardir, 'build', 'bin' )
+
+
+# -----------------------------------------------
+# arguments (1)
+# -----------------------------------------------
+
+# extract arguments from sys.argv array:
+#   0 = name of calling script, 1: = actual arguments
+script = sys.argv[0]
+args = sys.argv[1:]
+
+# set text for 'usage' help line:
+usage = "%prog [options] [-e|--exec=]<executable>] [-r|--rcfile=]<rcfile>"
+
+# extra help text
+epilog = """
+Arguments that are no flags are supposed to be file names
+and clasified according to their extension as either
+an executable (.x) or rc file (.rc) .
+"""
+
+
+# initialise the option parser:
+#parser = optparse.OptionParser(usage=usage,epilog=epilog)
+parser = optparse.OptionParser(usage=usage)  # not all python version accept epilog yet ...
+
+# define verbose option:
+parser.add_option( "-v", "--verbose", 
+                     help="print extra logging messages to standard output (%s)" % str(verbose_default),
+                     dest="verbose", action="store_true", default=verbose_default )
+parser.add_option( "-p", "--py-path", 
+                     help="path to additional submit scripts (%s)" % pypath_default,
+                     dest="pypath", action="store", default=pypath_default )
+#parser.add_option( "-b", "--background", 
+#                     help="""Run executable in background. Standard output and error are redirected.""",
+#                     dest="submit_to", action="store_const", const='background' )
+#parser.add_option( "-q", "--queue", 
+#                     help="submit executable to a queue system",
+#                     dest="submit_to", action="store_const", const='queue' )
+#parser.add_option( "-s", "--submit-option", 
+#                     help="""Extra submit option(s) passed to queue scheduler. 
+#                     Example for BSUB:                               
+#                       -K : (keep) wait for end of run before return.""",
+#                     dest="submit_options", action="store" )
+#parser.add_option( "-d", "--debugger", 
+#                     help="run executable in debuger",
+#                     dest="submit_debugger", action="store_true" )
+parser.add_option( "-e", "--exec", 
+                     help="name of executable",
+                     dest="exe", type="string" )
+parser.add_option( "-r", "--rcfile", 
+                     help="""Template rcfile with runtime settings.
+                     For each forecast a new rcfile is created based on this one.""",
+                     dest="rcfile", type="string" )
+
+# now parse the actual arguments;
+# return an object 'opts' with fields 'verbose' etc,
+# and the unnamed arguments in the list 'args' :
+opts,args = parser.parse_args( args=args )
+
+
+# -----------------------------------------------
+# logging
+# -----------------------------------------------
+
+# setup messages:
+#logging.basicConfig( format='%(lineno)-4s:%(filename)-30s [%(levelname)-8s] %(message)s', level=logging.INFO, stream=sys.stdout )
+logging.basicConfig( format='[%(levelname)-8s] %(message)s', level=logging.INFO, stream=sys.stdout )
+
+# info ...
+logging.info( '' )
+tnow = datetime.datetime.now().isoformat(' ').split('.',1)[0]
+logging.info( 'Started script at %s ...' % tnow )
+logging.info( '' )
+
+# info ...
+logging.info( '  parsed options  : %s' % opts )
+logging.info( '  parsed argument : %s' % args )
+
+# debug messages to standard output ?
+if opts.verbose : 
+    logging.info( '  verbose mode for standard output; print all messages ...' )
+    stdout_handler.setLevel(logging.DEBUG)
+else :
+    logging.info( '  quiet mode for standard output; print info messages only ...' )
+#endif
+
+
+# -----------------------------------------------
+# arguments (2)
+# -----------------------------------------------
+
+# info ...
+logging.info( 'store arguments ...' )
+
+# copy from options into less cryptic variables:
+rcfile = opts.rcfile
+exe = opts.exe
+
+# arguments are either rcfiles or an executable;
+# copy from arguments into new variables;
+# loop over arguments:
+for arg in args :
+    # executable ?
+    if arg.endswith('.x') :
+        # already specified ?
+        if exe != None :
+            logging.error( 'found argument "%s", while already executable defined : %s' % (arg,exe) )
+            raise Exception
+        #endif
+        # info ...
+        logging.info( '  found executable : %s' % arg )
+        # store:
+        exe = arg
+        # next argument:
+        continue
+    #endif
+    # ends with '.rc' ? then add to list with rcfiles:
+    if arg.endswith('.rc') :
+        # already specified ?
+        if rcfile != None :
+            logging.error( 'found argument "%s", while already rcfile defined : %s' % (arg,rcfile) )
+            raise Exception
+        #endif
+        # info ...
+        logging.info( '  found rcfile : %s' % arg )
+        # store:
+        rcfile = arg
+        # next argument:
+        continue
+    #endif
+    # unknown ...
+    logging.error( 'argument is not an executable or rcfile : %s' % arg )
+    raise Exception
+#endfor
+
+
+# -----------------------------------------------
+# toolboxes
+# -----------------------------------------------
+
+# prepend location of python modules to search path;
+# either passed via arguments or the default defined above:
+sys.path.insert( 0, opts.pypath )
+
+# local modules:
+import rc
+import submit_le_tools
+
+
+# -----------------------------------------------
+# begin
+# -----------------------------------------------
+
+# executable should have been specified:
+if exe == None :
+    logging.error( 'no executable specified ...' )
+    sys.exit(1)
+#endif
+# executable exist ?
+if not os.path.exists(exe) :
+    logging.error( 'executable not found : %s' % exe )
+    sys.exit(1)
+#endif
+# info ...
+logging.info( 'executable : %s' % exe )
+
+# rcfile should have been specified:
+if rcfile == None :
+    logging.error( 'no rcfile specified ...' )
+    sys.exit(1)
+#endif
+# check if rcfile exists ...
+if not os.path.exists(rcfile) :
+    logging.error( 'rcfile not found : %s' % rcfile )
+    sys.exit(1)
+#endif
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# loop over forecasts
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+# read settings:
+rcf = rc.RcFile( rcfile )
+
+# base dates:
+tfmt = '%Y-%m-%d'
+base_day1 = datetime.datetime.strptime( rcf.get('forecast-many.time.day1'), tfmt )
+base_day2 = datetime.datetime.strptime( rcf.get('forecast-many.time.day2'), tfmt )
+
+# forecast range:
+fc_nday1 = rcf.get( 'forecast-many.time.start.nday', 'int' )
+fc_nday2 = rcf.get( 'forecast-many.time.end.nday'  , 'int' )
+
+# raw version:
+rcf_raw = rc.RcFile( rcfile, raw=True )
+
+# number of jobs that can be submitted in parallel:
+njob = rcf.get( 'forecast-many.njob', 'int' )
+
+# options passed to submit script:
+submit_options = rcf.get( 'forecast-many.submit.options' )
+
+# collection of rcfiles per job:
+fc_rcfiles = []
+for ijob in range(njob) : fc_rcfiles.append([])
+
+# loop over days:
+ijob = 0
+day = base_day1
+while day <= base_day2 :
+
+    # info ..
+    logging.info( 'day %s ...' % day )
+    
+    # end ?
+    the_end = day == base_day2
+    
+    # key added to rcfiles:
+    fc_key = 'fc%s' % day.strftime('%Y%m%d')
+    
+    # timerange:
+    fc_t0 = day
+    fc_t1 = day + datetime.timedelta(fc_nday1)
+    fc_t2 = day + datetime.timedelta(fc_nday2)
+    
+    # info ...
+    logging.info( '  time range %s to %s' % (fc_t1,fc_t2) )
+    
+    # * new settings
+    
+    # enable forecast series (meteo etc):
+    rcf_raw.replace( 'forecast.mode', 'yes' )
+
+    # no filter modes:    
+    rcf_raw.replace( 'kf.with.xm', 'F' )
+    
+    # start from restart:
+    rcf_raw.replace( 'kf.restart', 'T' )
+    # do not write new restarts, too much data ...
+    rcf_raw.replace( 'kf.restart.save', 'F' )
+    
+    ##>>> user specified
+    ## start background run from mean:
+    #rcf_raw.replace( 'kf.restart.xb.from_mean', 'T' )
+    ## take previous dc values:
+    #rcf_raw.replace( 'kf.restart.xb.dc_option', 'hourly' )
+    #<<<
+    
+    # new timerange:
+    tfmt = '%Y-%m-%d %H:%M:00'
+    # for safety: also set the original range
+    rcf_raw.replace( 'timerange.start'    , fc_t1.strftime(tfmt) )
+    rcf_raw.replace( 'timerange.end'      , fc_t2.strftime(tfmt) )
+    # special timerange:
+    rcf_raw.replace( 'forecast.timerange.base' , fc_t0.strftime(tfmt) )
+    rcf_raw.replace( 'forecast.timerange.start', fc_t1.strftime(tfmt) )
+    rcf_raw.replace( 'forecast.timerange.end'  , fc_t2.strftime(tfmt) )
+    
+    # name of rcfile installed in run directory:
+    rcf_raw.replace( 'my.basename', 'kf-lotos-euros-${run.project}-${run.id}-%s' % fc_key )
+
+    # output files:
+    fc_outdir = '${my.project.dir}/output/%s' % fc_key
+    rcf_raw.replace( 'le.output.outdir'     , fc_outdir )
+    rcf_raw.replace( 'le.output.install.dir', fc_outdir )
+    rcf_raw.replace( 'maori.path'           , fc_outdir )
+    
+    # *
+    
+    # new rcfile name:
+    base,ext = os.path.splitext(rcfile)
+    fc_rcfile = '%s-%s.rc' % (base,fc_key)
+    # info ...
+    logging.debug( '  create %s ...' % fc_rcfile )
+    # write:
+    rcf_raw.WriteFile( fc_rcfile )
+    
+    # add to collection:
+    fc_rcfiles[ijob].append( fc_rcfile )
+    
+    # next:
+    day = day + datetime.timedelta(1)
+    ijob = (ijob + 1) % njob
+#endwhile
+
+# info ...
+logging.info( 'submit jobs ...' )
+# loop over jobs:
+for ijob in range(njob) :
+
+    # create submit command:
+    command = '%s %s %s' % (os.path.join(os.curdir,'submit_le'),submit_options,exe)
+    # add rcfiles:
+    for fc_rcfile in fc_rcfiles[ijob] :
+        command = command+' '+fc_rcfile
+    #endfor
+    
+    # job output file:
+    job_output = 'submit_fc.%i.out' % ijob
+
+    # info ...
+    logging.info( ' ' )
+    logging.info( 'job         : %i' % ijob )
+    logging.info( 'job output  : %s' % job_output )
+    logging.info( 'command     : %s' % command )
+    
+    # open:
+    job_output_file = open( job_output, 'w' )
+
+    # run in background, return process object:
+    p = subprocess.Popen( command.split(), stdout=job_output_file  )
+    
+    # ok
+    job_output_file.close()
+
+#endfor
+
+
+# -----------------------------------------------
+# end
+# -----------------------------------------------
+
+logging.info( '' )
+tnow = datetime.datetime.now().isoformat(' ').split('.',1)[0]
+logging.info( 'End script at %s ...' % tnow )
+logging.info( '' )

@@ -16,14 +16,14 @@ import os
 
 
 class NMF:
-    def __init__(self, rank=None, inheritance=False, H_init=None, W_init=None, kernel_size=(1,1,1)):
+    def __init__(self, rank=None, kernel_size=(1,1,1)):     # inheritance=False, H_init=None, W_init=None,
         self.cwd = os.getcwd()
-        self.inheritance = inheritance
-        self.W = H_init
-        self.H = W_init
-        self.inheretence_check()
+        #self.inheritance = inheritance_check()
+        #self.W = H_init
+        #self.H = W_init
+        #self.inheretence_check()
         self.rank = rank
-        self.dimensionality_check()
+        #self.dimensionality_check()
         self.kernel_size=kernel_size
 
 
@@ -39,26 +39,28 @@ class NMF:
             raise Exception("W_init shape is incorrect, dimension 1 should match number of rank")
 
 
-    def nmf(self):
+    def nmf(self, shape, rank, **kwargs):
         #initialise NMF class
-        if self.inheritance == True:
-            # can be changed to NMF3D H (N,R, x, y, z)
-            instance = nmf.nmf.NMF(H=self.H, W=self.W, rank=self.rank)
-        elif self.inheritance == False:
-            instance = nmf.nmf.NMF(self.V.shape, rank=self.rank)
+        #instance = nmf.nmf.NMF(H=self.H, W=self.W, rank=rank)
+        instance = nmf.nmf.NMF(shape, rank=rank)
         return instance
 
     def trainer(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0):
-        #Base NMF class
-        self.BaseComponent = self.nmf()
+        # Training Projection Matrix
+        self.Projection_BaseComponent = self.nmf([V.shape[0], V.shape[1]], rank=self.rank)
+        Reconstruction_BaseComponent = self.nmf([self.rank, V.shape[1]], rank=V.shape[0])
+        Reconstruction_B = Reconstruction_BaseComponent.H
         print("Training start, V has %s time component" %(V.shape[2]))
         for i in np.arange(V.shape[2]):
-            self.BaseComponent.fit(V[:,:,i], beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
+            self.Projection_BaseComponent.fit(V[:,:,i], beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
+            Reconstruction = nmf.nmf.NMF(H=Reconstruction_B, W=V[:,:,i], rank=V.shape[0], trainable_W = False)
+            Reconstruction.fit(self.Projection_BaseComponent.W, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
+            Reconstruction_B = Reconstruction.H
             if np.mod((i + 1), 5):
                 print("%s iterations completed, %s time component remaining" %((i + 1), (V.shape[2] + 1)))
         print("Training completed")
         with torch.no_grad():
             dt = datetime.now().strftime("%Y%m%d_%H%M%S")
             torch.save(self.BaseComponent.H, os.path.join(self.cwd, "trained_W_%s.pth" %(dt)))
-            torch.save(self.BaseComponent.W, os.path.join(self.cwd, "trained_H_%s.pth" % (dt)))
+            torch.save(Reconstruction_B, os.path.join(self.cwd, "trained_B_%s.pth" % (dt)))
             print("Trained weight saved at %s" %(self.cwd))

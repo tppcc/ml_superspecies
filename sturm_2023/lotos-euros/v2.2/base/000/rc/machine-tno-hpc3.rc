@@ -1,0 +1,275 @@
+!#######################################################################
+!
+! TNO / HPC3 computing server
+!
+!#######################################################################
+
+
+!----------------------------------------------------------------------
+! user names
+!----------------------------------------------------------------------
+
+! used for output attributes ...
+
+! name of institution:
+user.institution             :  TNO
+
+! extract user long name from environment variable:
+user.longname                :  ${USERLONGNAME}
+
+
+!----------------------------------------------------------------------
+! compiler settings
+!----------------------------------------------------------------------
+
+! GCC compiler suite, selected with environment variables:
+#include base/${my.le.patch}/rc/compiler-${COMPILER_SUITE}-${COMPILER_VERSION}.rc
+
+
+!----------------------------------------------------------------------
+! mpi wrapper
+!----------------------------------------------------------------------
+
+! compiler wrappers for MPI:
+mpi.compiler.fc                     :  mpifort
+mpi.compiler.fc.openmp              :  mpifort
+
+
+!----------------------------------------------------------------------
+! libraries
+!----------------------------------------------------------------------
+
+! (optional) macro to enable udunits library:
+!my.udunits.define             :  
+!my.udunits.define             :  with_udunits1
+my.udunits.define             :  with_udunits2
+
+! define libraries:
+my.spblas.define              :  
+!my.spblas.define              :  with_spblas
+
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+!! HDF5 library:
+!compiler.lib.hdf5.fflags        : 
+!compiler.lib.hdf5.libs          : -L${HDF5_HOME}/lib -lhdf5_hl -lhdf5
+
+! NetCDF library (actually netcdf4 ...)
+compiler.lib.netcdf.fflags      : ${compiler.lib.netcdf4.fflags}
+compiler.lib.netcdf.libs        : ${compiler.lib.netcdf4.libs}
+
+! NetCDF4 library:
+compiler.lib.netcdf4.fflags     : -I${NETCDF_FORTRAN_HOME}/include
+compiler.lib.netcdf4.libs       : -L${NETCDF_FORTRAN_HOME}/lib -lnetcdff -Wl,-rpath -Wl,${NETCDF_FORTRAN_HOME}/lib \
+                                  -L${NETCDF_C_HOME}/lib -lnetcdf -Wl,-rpath -Wl,${NETCDF_C_HOME}/lib \
+                                  -L${HDF5_HOME}/lib -lhdf5_hl -lhdf5 -Wl,-rpath -Wl,${HDF5_HOME}/lib
+                                  
+! UDUnits library:
+compiler.lib.udunits2.fflags    : 
+compiler.lib.udunits2.libs      : -L${UDUNITS_HOME}/lib -ludunits2 -lexpat
+
+compiler.lib.mpi.fflags         : 
+compiler.lib.mpi.libs           : 
+
+!! BLAS library:
+!compiler.lib.blas.fflags        : -I${LAPACK_HOME}/include
+!compiler.lib.blas.libs          : -L${LAPACK_HOME}/lib -lblas
+!
+!! Lapack library:
+!compiler.lib.lapack.fflags      : -I${LAPACK_HOME}/include
+!compiler.lib.lapack.libs        : -L${LAPACK_HOME}/lib -llapack
+!
+!! Sparse BLAS library:
+!compiler.lib.spblas.fflags      : -I${SPBLAS_HOME}/include
+!compiler.lib.spblas.libs        : -L${SPBLAS_HOME}/lib -lspblas
+
+
+!----------------------------------------------------------------------
+! makedep
+!----------------------------------------------------------------------
+
+! Is makedepf90 installed?
+! This flag is used in the 'expert.rc' settings:
+my.with.makedep            :  True
+
+
+!----------------------------------------------------------------------
+! maker
+!----------------------------------------------------------------------
+
+! default number of build jobs that can be used,
+! this is passed to 'build.jobs' in the expert rc;
+! on this machine, use the number of allocated processes:
+my.build.jobs       :  1
+
+! make command; 
+! the setup script will insert the 'build.jobs' specified in the expert.rc
+! or passed as argument to the setup script:
+!
+maker               :  gmake -j %{build.jobs}
+
+
+!----------------------------------------------------------------------
+! MPI runner
+!----------------------------------------------------------------------
+
+!~ Intel suite:
+!  -n <ntask>                : number of tasks
+!  -outfile-pattern <file>   : writes task output to file, include '%r' for process rank
+!  -errfile-pattern <file>   : writes task output to file, include '%r' for process rank
+!mpirun.command     :  mpirun
+!mpirun.args        :  -n ${par.ntask} -outfile-pattern ${job.name}.out.%r -errfile-pattern ${job.name}.err.%r
+
+!~ OpenMPI wrapper:
+!  --np <ntask>              : number of processes ("tasks")
+!  --output-filename <file>  : writes task output to "<file>.<node>.<task>"
+!mpirun.command     :  mpirun
+!mpirun.args        :  --np ${par.ntask} --map-by :PE=${my.run.nthread} \
+!                        --display-devel-map --display-allocation \
+!                        --output-filename ${job.name}.out
+
+! SLURM: use 'srun' instead of 'mpirun'.
+! Seems necessary to export explicitly some environment variables.
+mpirun.command     :  srun
+mpirun.args        :  --nodes=1 \
+                       --ntasks=${par.ntask} \
+                       --cpus-per-task=${my.run.nthread} \
+                       --export=LD_LIBRARY_PATH,UDUNITS_PATH,OMP_NUM_THREADS=${my.run.nthread} \
+                       --output=${job.name}_%{step}.out.%t --error=${job.name}_%{step}.err.%t
+
+! name of command file; if empty, then executable and arguments are added to the command line
+mpirun.cmdfile     :  
+
+! name of host file:
+mpirun.hostfile    :
+
+
+!----------------------------------------------------------------------
+! debugger
+!----------------------------------------------------------------------
+
+! debugger type: totalview | idb | kdbg
+debugger                :  idb
+
+! command for debugger:
+debugger.command        :  idb
+
+
+!----------------------------------------------------------------------
+! jobs
+!----------------------------------------------------------------------
+
+! where to submit jobs to by default ?
+my.submit.to.default               : queue
+
+! allowed destinations:
+my.submit.to.allowed               : foreground queue
+
+! shell to use in job scripts:
+! o python scripts:
+job.shell.python                   : /usr/bin/env python
+
+
+!----------------------------------------------------------------------
+! some run time settings ...
+!----------------------------------------------------------------------
+
+! number of MPI tasks in run step:
+#if "${par.mpi}" in ["yes","T","True"] :
+my.run.ntask                      :  ${par.ntask}
+#elif "${par.mpi}" in ["no","F","False"] :
+my.run.ntask                      :  1
+#else
+#error Could not set number of MPI tasks for par.mpi "${par.mpi}"
+#endif
+
+! number of OpenMP threads in run step:
+#if "${par.openmp}" in ["yes","T","True"] :
+my.run.nthread                    :  ${par.nthread}
+#elif "${par.openmp}" in ["no","F","False"] :
+my.run.nthread                    :  1
+#else
+#error Could not set number of OpenMP threads for par.openmp "${par.openmp}"
+#endif
+
+
+!----------------------------------------------------------------------
+! shell options
+!----------------------------------------------------------------------
+
+! for running in foreground or background;
+! add python code that is directly inserted in header
+
+shell.options.default       :
+
+shell.options.init          :  
+
+shell.options.run           :  \n\
+# machine specific settings:\n\
+import os\n\
+os.putenv( 'OMP_NUM_THREADS', '${my.run.nthread}' )
+
+shell.options.done          :
+
+
+!----------------------------------------------------------------------
+! settings for SLURM queue
+!----------------------------------------------------------------------
+
+! queue type:
+queue        :  slurm
+
+! list of queue options (same for each step):
+queue.slurm.options                     :  job-name nodes ntasks cpus-per-task mem workdir no-requeue output error
+
+! job name:
+queue.slurm.option.job-name             :  ${job.name}
+
+! minimum number of node
+queue.slurm.option.nodes                :  1
+
+! single task by default:
+queue.slurm.option.ntasks               :  1
+! mpi run:
+queue.slurm.option.run.ntasks           :  ${my.run.ntask}
+
+! single thread by default:
+queue.slurm.option.cpus-per-task        :  1
+! maximum number of tasks:
+queue.slurm.option.run.cpus-per-task    :  ${my.run.nthread}
+
+! default memory:
+queue.slurm.option.mem                  :  1Gb
+! more for model:
+queue.slurm.option.run.mem              :  8Gb
+
+! work directory:
+queue.slurm.option.workdir              :  ${rundir}
+
+! do not re-submit automatically:
+queue.slurm.option.no-requeue           :  
+
+! log files:
+queue.slurm.option.output               :  <auto>
+queue.slurm.option.error                :  <auto>
+
+! adhoc, no idea why this is needed by scripting ..
+queue.slurm.args        : 
+queue.slurm.args.init   : 
+queue.slurm.args.run    : 
+queue.slurm.args.done   : 
+
+
+
+!----------------------------------------------------------------------
+! model data
+!----------------------------------------------------------------------
+
+! the user scratch directory:
+my.scratch                    :  ${SCRATCH}
+
+! base path to input data files:
+my.data.dir                   :  ${LE_DATA}
+
+!! extra install tasks:
+!my.install.tasks              :

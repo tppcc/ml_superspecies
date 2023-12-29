@@ -1,0 +1,11 @@
+
+# exit on error:
+set -e
+
+## previous base, this used the OLD setup script!
+#./base/000/bin/setup_le base/000/rc/lotos-euros.rc -s $*
+
+# latest base:
+./base/001/bin/setup-le base/001/rc/lotos-euros.rc $*
+
+

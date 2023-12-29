@@ -1,0 +1,14 @@
+#
+# Makefile for LOTOS-EUROS run directory.
+#
+
+help:
+	@echo " "
+	@echo "  usage:"
+	@echo "    make clean         # remove output and error files"
+	@echo " "
+
+clean:
+	/bin/rm -f *.*.{out,err,info}
+	/bin/rm -f fort.7*
+

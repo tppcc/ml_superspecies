@@ -1,0 +1,159 @@
+!#######################################################################
+!
+! KNMI LuKwa server
+!
+!#######################################################################
+
+
+!----------------------------------------------------------------------
+! user names
+!----------------------------------------------------------------------
+
+! used for output attributes ...
+
+! name of institution:
+user.institution             :  KNMI
+
+! extract user long name from environment variable:
+user.longname                :  ${USER}
+
+
+!----------------------------------------------------------------------
+! compiler settings
+!----------------------------------------------------------------------
+
+! Intel Fortran Compiler
+#include base/${my.patch.nr}/rc/compiler-intel-11.1.rc
+
+
+!----------------------------------------------------------------------
+! libraries
+!----------------------------------------------------------------------
+
+! (optional) macro to enable udunits library:
+!my.udunits.define             :  
+my.udunits.define             :  with_udunits1
+!my.udunits.define             :  with_udunits2
+
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+! NetCDF library:
+NETCDF_HOME                     : /home/eskes/dist
+compiler.lib.netcdf.fflags      : -I${NETCDF_HOME}/include
+compiler.lib.netcdf.libs        : -L${NETCDF_HOME}/lib -lnetcdf
+
+!! NetCDF4 library:
+!compiler.lib.netcdf4.fflags     : -I${NETCDF4_HOME}/include
+!compiler.lib.netcdf4.libs       : -L${NETCDF4_HOME}/lib -lnetcdf
+
+! UDUnits library :
+UDUNITS_HOME                     : /home/eskes/dist
+compiler.lib.udunits1.fflags     : -I${UDUNITS_HOME}/include
+compiler.lib.udunits1.libs       : -L${UDUNITS_HOME}/include -ludunits
+
+!! LaPack library:
+!compiler.lib.lapack.fflags      : 
+!compiler.lib.lapack.libs        : ${LAPACK_LIB}
+
+
+!----------------------------------------------------------------------
+! makedep
+!----------------------------------------------------------------------
+
+! Is makedepf90 installed?
+! This flag is used in the 'expert.rc' settings:
+my.with.makedep            :  True
+
+
+!----------------------------------------------------------------------
+! maker
+!----------------------------------------------------------------------
+
+! default number of build jobs that can be used,
+! this is passed to 'build.jobs' in the expert rc:
+my.build.jobs       :  1
+
+! make command; 
+! the setup script will insert the 'build.jobs' specified in the expert.rc
+! or passed as argument to the setup script:
+!
+maker               :  gmake -j %{build.jobs}
+
+!----------------------------------------------------------------------
+! MPI runner
+!----------------------------------------------------------------------
+
+! command and arguments; no command file written, thus executable and arguments are added
+mpirun.command     :  mpiexec
+mpirun.args        :  -np ${par.ntask}
+
+! name of command file; if empty, then executable and arguments are added to the command line
+mpirun.cmdfile     :  
+
+! name of host file:
+mpirun.hostfile    :
+
+
+!----------------------------------------------------------------------
+! debugger
+!----------------------------------------------------------------------
+
+! debugger type: totalview | idb | kdbg
+debugger                :  idb
+
+! command for debugger:
+debugger.command        :  idb
+
+
+!----------------------------------------------------------------------
+! jobs
+!----------------------------------------------------------------------
+
+! where to submit jobs to by default ?
+my.submit.to.default               : foreground
+
+! allowed destinations:
+my.submit.to.allowed               : foreground background
+
+! shell to use in job scripts:
+! o python scripts:
+job.shell.python                   : /usr/bin/env python
+
+
+!----------------------------------------------------------------------
+! shell options
+!----------------------------------------------------------------------
+
+! for running in foreground or background;
+! add python code that is directly inserted in header
+
+shell.options.default       :
+
+shell.options.init          :  
+
+shell.options.run           :  \n\
+# machine specific settings:\n\
+import os\n\
+os.putenv( 'OMP_NUM_THREADS', '${par.nthread}' )
+
+shell.options.done          :
+
+
+!----------------------------------------------------------------------
+! model data
+!----------------------------------------------------------------------
+
+! the user scratch directory:
+my.scratch                    :  /scratch/${USER}
+
+! model data:
+MODELS                        :  /data/models
+
+! observation data:
+OBSERVATIONS                  :
+
+! base path to input data files:
+my.data.dir                   :  ${MODELS}/LOTOS-EUROS/data
+
+!! extra install tasks:
+!my.install.tasks              :

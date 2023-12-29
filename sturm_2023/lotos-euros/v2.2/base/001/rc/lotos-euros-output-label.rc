@@ -1,0 +1,148 @@
+! ** labeling ouptut
+
+!~~ Labeling output
+le.output.label.files           :  label-sfc label-3d
+!le.output.label.files           :  
+
+! Which labelled species should be in output
+le.output.label.label-sfc.specs         :  ppm_f ppm_c ec_f ec_c so4a_c so4a_f no3a_c no3a_f nh4a_f na_c na_cc na_ccc na_f na_ff pom_c pom_f dust_f dust_ff dust_ccc dust_cc dust_c \
+                                           no no2 nh3 so2 hno3 n2o5 pan
+le.output.label.label-sfc.levels        :  1
+le.output.label.label-sfc.levtype       :  levels
+le.output.label.label-sfc.bounding_box  :
+le.output.label.label-sfc.dhour         :  ${my.output.dhour}
+le.output.label.label-sfc.collect       :  daily
+
+! Which labelled species should be in output
+le.output.label.label-3d.specs          :  ppm_f ppm_c ec_f ec_c so4a_c so4a_f no3a_c no3a_f nh4a_f na_c na_cc na_ccc na_f na_ff pom_c pom_f dust_f dust_ff dust_ccc dust_cc dust_c \
+                                           no no2 hno3 hno2 pan n2o5 no3 so2 nh3
+le.output.label.label-3d.levels         :  all
+le.output.label.label-3d.levtype        :  levels
+le.output.label.label-3d.bounding_box   :  
+le.output.label.label-3d.dhour          :  ${my.output.dhour}
+le.output.label.label-3d.collect        :  daily
+
+! labelled tracers for boundary run
+le.output.label.label-bound.specs          :  ppm_f ppm_c ec_f ec_c so4a_c so4a_f no3a_c no3a_f nh4a_f na_c na_cc na_ccc na_f na_ff pom_c pom_f dust_f dust_ff dust_ccc dust_cc dust_c \
+                                             no no2 hno3 hno2 pan n2o5 no3 so2 nh3
+le.output.label.label-bound.levels         :  all
+le.output.label.label-bound.levtype        :  levels
+le.output.label.label-bound.bounding_box   :  ${le.output.conc.conc-bound.bounding_box}
+le.output.label.label-bound.dhour          :  ${my.output.dhour}
+le.output.label.label-bound.collect        :  daily
+
+!~~ Labelled concentration output 
+le.output.labelled_conc.files           :  labelled-conc-sfc labelled-conc-3d
+!le.output.labelled_conc.files          :  
+
+! Which labelled species should be in output
+le.output.labelled_conc.labelled-conc-sfc.specs         :  no no2 nh3 so2 hno3 tpm10 tpm25
+le.output.labelled_conc.labelled-conc-sfc.levels        :  0
+le.output.labelled_conc.labelled-conc-sfc.levtype       :  levels
+le.output.labelled_conc.labelled-conc-sfc.bounding_box  :
+le.output.labelled_conc.labelled-conc-sfc.dhour         :  ${my.output.dhour}
+le.output.labelled_conc.labelled-conc-sfc.collect       :  daily
+le.output.labelled_conc.labelled-conc-sfc.convention    :  ${my.output.convention}
+
+le.output.labelled_conc.labelled-conc-3d.specs         :  ${le.output.labelled_conc.labelled-conc-sfc.specs}
+le.output.labelled_conc.labelled-conc-3d.levels        :  all
+le.output.labelled_conc.labelled-conc-3d.levtype       :  levels
+le.output.labelled_conc.labelled-conc-3d.bounding_box  :
+le.output.labelled_conc.labelled-conc-3d.dhour         :  ${my.output.dhour}
+le.output.labelled_conc.labelled-conc-3d.convention    :  ${my.output.convention}
+le.output.labelled_conc.labelled-conc-3d.collect       :  daily
+
+!~~ Labelling output for the emission
+!le.output.emis_label.files                        : emis-label-col emis-label-3d
+le.output.emis_label.files                        : 
+
+! properties per labelled emissions (column is defined with level zero in code)
+le.output.emis_label.emis-label-col.specs         :  ${le.output.emis.emis.fields}
+le.output.emis_label.emis-label-col.levels        :  0
+le.output.emis_label.emis-label-col.levtype       :  levels
+le.output.emis_label.emis-label-col.bounding_box  : 
+le.output.emis_label.emis-label-col.dhour         :  ${my.output.dhour}
+le.output.emis_label.emis-label-col.collect       :  daily24
+le.output.emis_label.emis-label-col.convention    :  ${my.output.convention}
+
+! properties per labelled emissions (output per model layer)
+le.output.emis_label.emis-label-3d.specs          :  ${le.output.emis.emis.fields}
+le.output.emis_label.emis-label-3d.levels         :  1 2 3 4 5
+le.output.emis_label.emis-label-3d.levtype        :  levels
+le.output.emis_label.emis-label-3d.bounding_box   :  
+le.output.emis_label.emis-label-3d.dhour          :  ${my.output.dhour}
+le.output.emis_label.emis-label-3d.collect        :  daily24
+le.output.emis_label.emis-label-3d.convention     :  ${my.output.convention}
+
+! ** dry depositon budgets (hourly)
+
+! labelled output for drydeposition
+!le.output.drydep_label.files               :  drydepo-label
+le.output.drydep_label.files               : 
+
+! specify per target:
+le.output.drydep_label.drydepo-label.fields      :  so2 so4a_f so4a_c no no2 hno3 no3a_f no3a_c nh3 nh4a_f na_f na_ff na_c na_cc na_ccc n2o5 no3
+le.output.drydep_label.drydepo-label.bounding_box:  
+le.output.drydep_label.drydepo-label.dhour       :  ${my.output.dhour}
+le.output.drydep_label.drydepo-label.collect     :  daily24
+le.output.drydep_label.drydepo-label.convention  :  ${my.output.convention}
+le.output.drydep_label.drydepo-label.process     :  drydepo
+
+
+! ** wet depositon budgets (hourly)
+
+! Labelled output for wet deposition
+!le.output.wetdep_label.files              :  wetdepo-label
+le.output.wetdep_label.files              :  
+
+! specify per target:
+le.output.wetdep_label.wetdepo-label.fields      :  so2 so4a_f so4a_c hno3 no no2 no3a_f no3a_c nh3 nh4a_f pan hno2 n2o5
+le.output.wetdep_label.wetdepo-label.bounding_box:  
+le.output.wetdep_label.wetdepo-label.dhour       :  ${my.output.dhour}
+le.output.wetdep_label.wetdepo-label.collect     :  daily24
+le.output.wetdep_label.wetdepo-label.convention  :  ${my.output.convention}
+
+
+! ** budgets (daily)
+
+! daily labelled budget files to be put out with dry deposition budgets per landuse
+!le.output.budget_label.files              :  budget-label
+le.output.budget_label.files              :  
+le.output.budget_label.budget-label.fields       :  drydep drydep_lu wetdep
+le.output.budget_label.budget-label.tracers      :  nh3 nh4a_f no no2 no3a_f no3a_c hno3 so2 so4a_f
+le.output.budget_label.budget-label.bounding_box : 
+le.output.budget_label.budget-label.landuses     :  grs ara crp cnf dec wat urb oth dsr
+
+! *** OMI tropospheric columns
+
+! put out simulated columnes ? leave empty for not;
+! provide keyword used in filenames (currently only 1 output possible):
+le.output.omi_trc_label.files           :  
+!le.output.omi_trc_label.files           :  omi_trc-label
+
+! which tracer ? currently files available for:
+!  no2   : original data
+!  form  : simulated formaldehyde
+le.output.omi_trc_label.tracer         :  no2
+
+!
+! template for filenames, supported keys:
+!   %{year}      : year
+!   %{yyyymmdd}  : 8-digit day
+!   %{TRACER}    : tracer (uppercase)
+!   %{tracer}    : tracer (lowercase)
+!
+le.output.omi_trc_label.filenames      :  ${MODAS_SHARED}/observations/TEMIS/airpollution/no2col/data/omi/eu_v2/%{year}/%{month}/OMI-Aura_NO2_%{yyyymmdd}.nc
+
+! tropospheric averaging kernel only valid for tropospheric layers;
+! specify pressure top for troposphere (Pa);
+! here we use 200 hPa folllowing page 4 of ISOTROP document 
+!   "Synthetic Observations Product Specification" :
+le.output.omi_trc_label.ptropo         :  200.0e2
+
+! Boundary fields needed for merging top boundary with LE layers at OMI-column
+! Calculation with pressure levels and concentration fields
+! Use correct values from boundary input (is this case macc_rea)
+le.output.omi_trc_label.top_hp         : __cams_nrt_hp
+le.output.omi_trc_label.top_trc        : __cams_nrt_no2
+

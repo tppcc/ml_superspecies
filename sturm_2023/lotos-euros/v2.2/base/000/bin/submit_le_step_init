@@ -1,0 +1,559 @@
+#! /usr/bin/env python
+
+
+# -----------------------------------------------
+# help
+# -----------------------------------------------
+
+"""
+NAME
+    submit_le_step_init
+    
+DESCRIPTION
+
+    Script to setup the run directory for the actual model run:
+     o install input files
+     o create output directories
+     o run special user setup scripts
+
+    
+INSTALLATION OF INPUT FILES
+
+    Which files should be installed, where to find them, and where to install them
+    is all specified in the rcfile.
+    
+    Specify space seperated list with install tasks:
+
+       install.tasks                 :  obs diffusion
+
+    For each task, a number of specific settings should be defined somewhere.
+    
+    To have just a directory created, only specify the the local directory:
+
+       <task>.install.dir             :  /local/data/
+
+    To have a number of files copied from an archive into this local directory,
+    also specify the archive location and a space seperated list with file names:
+
+       <task>.install.arch            :  /archive/data/
+       <task>.install.files           :  krep.dat zooi.tar morezooi.tar
+
+    If a file ends with '.tar' it is unpacked automatically.
+
+    The archive description should be understandible by the 'gss' scripts:
+
+         /archive/data/
+         ecfs:/tmx/TM/data        # ECMWF tape archive when running on ECMWF computer
+         ec:ecfs[tmx]:TM/data     # idem from a remote computer using EcAccess tools
+         mos:/fa/ks/TM/data       # KNMI tape archive
+   
+    If the archive consists of more than one directory, specify a space seperated list:
+
+       <task>.install.arch            :  /archive/data/A /archive/data/B
+    
+    Both the installation directory, the archive, and the file name might contain
+    keys '<yyyy>', '<mm>', and '<dd>' for the year/month/day withing the job timerange:
+
+       <task>.install.arch            :  /archive/data/<yyyy>/<mm>
+       <task>.install.files           :  all_<yyyy><mm>.dat
+       <task>.install.dir             :  /local/data/<yyyy>
+
+    If it is no problem that some files to be installed are not present in the archive,
+    use the 'optional' list instead of next to the 'files' list:
+
+       <task>.install.optional        :  eventually.tar
+    
+    If only files should be installed that match a file name pattern, use
+    (only works for archives on the local disk yet):
+
+       <task>.install.match           :  for_all_<yyyy>_*.tar
+
+    On some systems only a temporary scratch disk is present at run time.
+    The user should ensure that all input data is present on this local disk.
+    A useful UNIX command for this is 'rsync', which syncronizes the content
+    of a local directory with another directory. Use the following specification
+    for a list of files or directories that need to be present in the 'dir'
+    and should be synchronized with the version present in 'arch' :
+
+       <task>.install.rsync          :  TMtree
+
+    The installtion performs a time loop over the 'jobstep.timerange' ;
+    the 'dir', 'arch', 'files', 'optional', and 'rsync' values could then include
+    special keys '<yyyy>', '<mm>', or '<dd>'
+    that are replaced by the year, month, and day values respectively:
+
+       <task>.install.files           :  zooi_<yyyy><mm>.tar
+
+CREATE OUTPUT DIRECTORIES
+
+    The main output directory is specified in the rcfile:
+    
+        output.dir   :  /scratch/run/output
+
+    A list of output types specifies the individual outputs:
+    
+        output.types   :  conc station budget
+    
+    For each of these types, a sub directory is specified:
+    
+        conc.output.subdir      :  CONC
+        station.output.subdir   :  STATION
+
+USER SCRIPTS
+
+    Provide a ';' seperated list with script commands to be exectuted:
+
+       input.user.scripts           :  input.sc ; meteo-setup
+
+    Eventually add arguments; if one of the arguments is '<rcfile>'
+    this is replaced by the name of the runtime rcfile:
+
+       input.user.scripts           :  meteo-setup -v <rcfile>
+
+
+"""
+
+
+# -----------------------------------------------
+# external
+# -----------------------------------------------
+
+# standard modules:
+import sys
+import os
+import shutil
+import fnmatch
+import optparse
+import logging
+import datetime
+
+
+# -----------------------------------------------
+# logging
+# -----------------------------------------------
+
+# setup messages:
+logging.basicConfig( format='%(lineno)-4s:%(filename)-30s [%(levelname)-8s] %(message)s', level=logging.INFO, stream=sys.stdout )
+
+
+# -----------------------------------------------
+# default values
+# -----------------------------------------------
+
+# location of auxilary scripts:
+bindir_default = os.curdir
+
+
+# -----------------------------------------------
+# arguments
+# -----------------------------------------------
+
+# set text for 'usage' help line:
+usage = "%prog <rcfile>"
+
+# initialise the option parser:
+parser = optparse.OptionParser(usage=usage)
+
+# define options:
+parser.add_option( "--bindir", 
+                     help="location of auxilary scripts (%s)" % bindir_default,
+                     dest="bindir", action="store", default=bindir_default )
+
+# now parse the actual arguments;
+# return an object 'opts' with fields 'verbose' etc,
+# and the unnamed arguments in the list 'args' :
+opts,args = parser.parse_args()
+
+# only one argument ...
+if len(args) != 1 :
+    if opts.verbose : logging.error( 'single argument command should be specified, found : %i' % len(args) )
+    parser.print_usage()
+    sys.exit(1)
+#endif
+# extract ...
+rcfile = args[0]
+
+
+# -----------------------------------------------
+# toolboxes
+# -----------------------------------------------
+
+# location of scripts:
+scriptdir = opts.bindir
+
+# prepend locations of python modules to search path:
+sys.path.insert( 0, scriptdir )
+
+# local modules:
+import rc
+import go
+
+
+# -----------------------------------------------
+# begin
+# -----------------------------------------------
+
+# info ...
+logging.info( 'start' )
+
+# read settings:
+rcf = rc.RcFile( rcfile )
+
+
+#
+# install tasks
+#
+
+# info ...
+logging.info( 'install input files if necessary ...' )
+
+# list with input types:
+install_tasks = rcf.get( 'install.tasks' ).split()
+
+# loop over all tasks:
+for install_task in install_tasks :
+
+    # info ...
+    logging.info( '  task %s ...' % install_task )
+    
+    # time format in rcfiles:
+    tfmt = '%Y-%m-%d %H:%M:%S'
+    # time range of current job step:
+    if sys.version_info[0:3] <= (2,4,3) :
+        t1 = datetime.datetime( *map(int,rcf.get('timerange.start').replace('-',' ').replace(':',' ').split()) )
+        t2 = datetime.datetime( *map(int,rcf.get('timerange.end'  ).replace('-',' ').replace(':',' ').split()) )
+    else :
+        t1 = datetime.datetime.strptime( rcf.get('timerange.start'), tfmt )
+        t2 = datetime.datetime.strptime( rcf.get('timerange.end'  ), tfmt )
+    #endif
+    # check ...
+    if t2 <= t1 :
+        logging.error( 'invalid time range : %s , %s' % (t1,t2) )
+        raise Exception
+    #endif
+    # loop over days:
+    dt = datetime.timedelta(1)  # days
+
+    # list with processed directories and file names;
+    # this is to avoid repeated installation of (monthly?) files in the loop over days:
+    processed_dirs   = []
+    processed_files  = []
+    processed_rsyncs = []
+    
+    # store directory listings, this will save a lot of time if a remote directories have to be listed:
+    install_arch_listings = {}
+    
+    # time loop:
+    t = t1
+    while t <= t2 :
+
+        ## info ...
+        #logging.info( '    timeloop: %s' % str(t) )
+        # short values:
+        yyyy,mm,dd =  '%4.4i' % t.year, '%2.2i' % t.month, '%2.2i' % t.day
+
+        #
+        # * installation directory
+        #
+
+        # local directory where install should be installed:
+        install_dir = rcf.get( '%s.install.dir' % install_task )
+        # replace time keys:
+        install_dir = install_dir.replace('<yyyy>',yyyy).replace('<mm>',mm).replace('<dd>',dd)
+
+        # not processed yet ?
+        if install_dir not in processed_dirs :
+            # info ...
+            logging.info( '    install in %s ...' % install_dir )
+            # add to list to avoid new messages:
+            processed_dirs.append(install_dir)
+        #endif
+        
+        # create if necessary:
+        if not os.path.exists(install_dir) :
+            # info ...
+            logging.info( '      create ...' )
+            # create including parent directories:
+            os.makedirs(install_dir)
+        #endif
+        
+        #
+        # * install files
+        #
+
+        # names of files to be present:
+        install_files = rcf.get( '%s.install.files' % install_task, default='' ).split()
+        # names of optional files:
+        install_optional = rcf.get( '%s.install.optional' % install_task, default='' ).split()
+        # names of files matching a pattern:
+        install_match    = rcf.get( '%s.install.match' % install_task, default='' ).split()
+        
+        # collect:
+        install_file_templates = install_files + install_optional + install_match
+        
+        # not empty ? then start installing files:
+        if len(install_file_templates) > 0 :
+        
+            # archive directories:
+            install_archs = rcf.get( '%s.install.arch' % install_task ).split()
+            
+            # loop over all archives where the files might be found:
+            for install_arch in install_archs :
+            
+                # replace time keys:
+                install_arch = install_arch.replace('<yyyy>',yyyy).replace('<mm>',mm).replace('<dd>',dd)
+
+                ## info ...
+                #logging.info( 'list %s ...' % install_arch )
+                # no listing of this archive available yet ?
+                if install_arch not in install_arch_listings.keys() :
+                    # list:
+                    install_arch_files = os.listdir(install_arch)
+                    # store:
+                    install_arch_listings[install_arch] = install_arch_files
+                #endfor
+
+                # loop over files (file patterns) to be installed:
+                for install_file_template in install_file_templates :
+                
+                    # template contains patterns for first time ?
+                    if ('<yyyymmdd1>' in install_file_template) or ('<hhmm1>' in install_file_template) :
+                        # first time?
+                        if t == t1 :
+                            # replace time keys for initial time:
+                            install_file_thisday = install_file_template
+                            install_file_thisday = install_file_thisday.replace('<yyyymmdd1>',t.strftime('%Y%m%d'))
+                            install_file_thisday = install_file_thisday.replace('<hhmm1>'    ,t.strftime('%H%M'  ))
+                        else :
+                            # no need to install anymore now, try next file:
+                            continue
+                        #endif
+                    else :
+                        # replace time keys:
+                        install_file_thisday = install_file_template
+                        install_file_thisday = install_file_thisday.replace('<yyyy>',yyyy).replace('<mm>',mm).replace('<dd>',dd)
+                    #endif
+
+                    # list with (matching?) files:
+                    if install_file_template in install_match :
+                        # pattern matchin ; returned list might be empty:
+                        install_file_matches = fnmatch.filter( install_arch_listings[install_arch], install_file_thisday )
+                    else :
+                        # no pattern matching, just a single filename which should be installed without restrictions:
+                        install_file_matches = [ install_file_thisday ]
+                    #endif
+
+                    # loop over matching files; might be empty:
+                    for install_file in install_file_matches :
+
+                        ## info ...
+                        #logging.info( '    timeloop: current file: %s' %  install_file )
+                        # already processed ?
+                        if install_file in processed_files :
+                            ## info ...
+                            #logging.info( '    timeloop: already processed ; try next ...' )
+                            # try next:
+                            continue
+                        #endif
+                        # processed now, so add to list:
+                        processed_files.append(install_file)
+
+                        # already present ?
+                        if os.path.exists(os.path.join(install_dir,install_file)) :
+                            # info ...
+                            logging.info( '    found %s ...' % install_file )
+                            # next:
+                            continue
+                        #endif
+
+                        # info ...
+                        logging.info( '    retrieve %s ...' % os.path.join(install_arch,install_file) )
+
+                        # check ...
+                        if not os.path.isfile( os.path.join(install_arch,install_file) ) :
+                            # warning message:
+                            logging.info( '      file not found, or error in testing presence in archive ...' )
+                            # optional anyway ?
+                            if install_file in install_optional :
+                                logging.warning( '      file is optional anyway, continue ...' )
+                                continue
+                            #endif
+                            # problem ...
+                            logging.error( '      Could not install this file, not found in the archive.' )
+                            logging.error( '      If this is not problem, then specify in the rcfile that the files to be installed are optional:' )
+                            logging.error( '           %s.install.optional    :  %s' % (install_task,install_file_template) )
+                            sys.exit(1)
+                        #endif
+
+                        # copy:
+                        shutil.copy( os.path.join(install_arch,install_file), os.path.join(install_dir,install_file) )
+                        
+                        # check for extensions .gz etc; define corresponding unzippers:
+                        unzipper = { '.gz'  : 'gunzip',
+                                     '.bz2' : 'bunzip2',
+                                     '.Z'   : 'uncompress',
+                                     '.zip' : 'unzip ' }
+                        # loop over all supported extensions:
+                        for ext in unzipper.keys() :
+                            # file has this extension ?
+                            if install_file.endswith(ext) :
+                                # info ...
+                                logging.info( '      unzip ...' )
+                                # goto input directory:
+                                owd = os.getcwd()
+                                os.chdir( install_dir )
+                                # command to unzip the file:
+                                command = [ unzipper[ext], install_file ]
+                                # execute:
+                                try :
+                                    p = go.subprocess.log_call( command )
+                                except Exception as err :
+                                    logging.error( err )
+                                    sys.exit(1)
+                                #endtry
+                                # back ...
+                                os.chdir( owd )
+                            #endif
+                        #endfor
+                        
+                        # unpack ?
+                        if install_file.endswith('.tar') :
+                            # info ...
+                            logging.info( '      unpack ...' )
+                            # goto input directory:
+                            owd = os.getcwd()
+                            os.chdir( install_dir )
+                            # command to unpack the file;
+                            # do not use the 'tar x -f etc' since some machine have a very old tar command ...
+                            command = [ 'tar', 'xf', install_file ]
+                            # execute:
+                            try :
+                                p = go.subprocess.log_call( command )
+                            except Exception as err :
+                                logging.error( err )
+                                sys.exit(1)
+                            #endtry
+                            # back ...
+                            os.chdir( owd )
+                        #endif
+
+                    #endfor   # matching input files
+
+                #endfor  # input file templates
+                
+            #endfor   # input archives
+        
+        #endfor  # files to be installed ?
+
+
+        #
+        # * synchronize directories
+        #
+
+        # names of files/directories to be synchronized:
+        filedirs = rcf.get( '%s.install.rsync' % install_task, default='' ).split()
+        # loop over files:
+        for filedir in filedirs :
+            # archive directory:
+            install_arch = rcf.get( '%s.install.arch' % install_task )
+            # replace time keys:
+            filedir      =      filedir.replace('<yyyy>',yyyy).replace('<mm>',mm).replace('<dd>',dd)
+            install_arch = install_arch.replace('<yyyy>',yyyy).replace('<mm>',mm).replace('<dd>',dd)
+            # already processed ?
+            if filedir in processed_rsyncs : continue
+            # processed now; add to list:
+            processed_rsyncs.append( filedir )
+            # info ...
+            logging.info( '    syncronize %s ...' % os.path.join(install_arch,filedir) )
+            # syncronization command:
+            command = [ 'rsync', '-a', os.path.join(install_arch,filedir), install_dir ]
+            # execute:
+            try :
+                p = go.subprocess.log_call( command )
+            except Exception as err :
+                logging.error( err )
+                sys.exit(1)
+            #endtry
+        #endfor  # files/directories
+        
+        #
+        # *
+        #
+
+        # next value in timeloop:
+        t = t + dt
+
+    #endwhile   # time loop
+
+#endfor   # input tasks
+
+
+##
+## output directories
+##
+#
+## create output directory:
+#output_dir = rcf.get('output.dir')
+#if not os.path.exists(output_dir) :
+#    logging.info( '      create %s ...' % output_dir )
+#    os.makedirs(output_dir)
+##endif
+#
+## create output subdirectories:
+#for typ in rcf.get('output.types').split() :
+#    # enabled ?
+#    flag = rcf.get( typ+'.output', 'bool', default=True )
+#    if flag :
+#        # read name of subdirectory:
+#        subdir = rcf.get( typ+'.output.subdir', default=None )
+#        # full path:
+#        mdir = os.path.join( output_dir, subdir )
+#        if not os.path.exists(mdir) :
+#            logging.info( '      create %s ...' % mdir )
+#            os.makedirs(mdir)
+#        #endif
+#    #endif
+##endfor
+    
+
+#
+# user scripts
+#
+
+# info ...
+logging.info( 'call user scripts if necessary ...' )
+
+# list with other scripts to be called:
+user_scripts = rcf.get( 'input.user.scripts', default='None' )
+# any request ?
+if user_scripts != 'None' :
+    # loop over sripts:
+    for user_script in user_scripts.split(';') :
+        # info ...
+        logging.info( '  call script "%s" ...' % user_script )
+        # command to call the script; replace some keywords:
+        command = user_script
+        command = command.replace('<bindir>',opts.bindir)
+        command = command.replace('<rcfile>',rcfile)
+        # execute within a shell, never know if there are '*' etc in the command line:
+        try :
+            p = go.subprocess.watch_call( command, shell=True )
+        except Exception as err :
+            logging.error( err )
+            sys.exit(1)
+        #endtry
+    #endfor   # user uscripts
+#endif  # list of scripts specified
+
+
+#
+# ok
+#
+
+# info ...
+logging.info( 'end' )
+
+# -----------------------------------------------
+# end
+# -----------------------------------------------
+

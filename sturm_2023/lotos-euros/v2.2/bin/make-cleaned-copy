@@ -1,0 +1,260 @@
+#! /usr/bin/env python
+
+"""
+Make copy of this source code.
+
+Eventually remove label/m7/pollen stuff.
+Edit settings below for configuration.
+
+"""
+
+#-------------------------------------------------
+# modules
+#-------------------------------------------------
+
+# modules:
+import os
+import shutil
+import subprocess
+
+
+#-------------------------------------------------
+# settings
+#-------------------------------------------------
+
+# target version direction:
+destdir = '../v2.2.000_open'
+
+# what to skip?
+skip_labeling  = True
+skip_m7        = True
+skip_radiation = True
+skip_pollen    = 'open' in destdir
+
+# source patch:
+patch = '000'
+
+# include beta version?
+betas = []
+#betas = ['001']
+
+# include delta code (defreezing fix)?
+delta = None
+#delta = '000d1'
+
+# source dirs to be copied:
+basedirs = []
+#~ base:
+basedirs.append( 'base/%s' % patch )
+#~ beta versions:
+for beta in betas :
+    basedirs.append( 'proj/beta/%s' % beta )
+#endfor
+#~ delta versions:
+if delta is not None :
+    basedirs.append( 'proj/delta/%s' % delta )
+#endif
+#~ extra:
+basedirs.append( 'tools/meteo' )
+
+# extra files (if present):
+xfiles = []
+xfiles.append( 'README.txt' )
+xfiles.append( 'Makefile' )
+xfiles.append( 'base/README.txt' )
+xfiles.append( 'base/%s/CHANGES.txt' % patch )
+#xfiles.append( 'base/%s/ERRATA.txt' % patch )
+for beta in betas :
+    xfiles.append( 'proj/beta/%s/CHANGES.txt' % beta )
+#endfor
+xfiles.append( 'tools/README.txt' )
+
+
+#-------------------------------------------------
+# begin
+#-------------------------------------------------
+
+# info ...
+print( '' )
+print( '** create open source copy' )
+print( '' )
+
+# info ...
+print( 'destination: %s' % destdir )
+
+# cleanup ...
+subprocess.check_call(['make','clean'])
+
+# loop:
+for basedir in basedirs :
+
+    # info ..
+    print( '  %s ...' % basedir )
+    
+    # check ..
+    if not os.path.isdir( basedir ) :
+        print( 'ERROR - basedir not found: %s' % basedir )
+        raise Exception
+    #endif
+
+    # target:
+    basedir_out = os.path.join( destdir, basedir )
+
+    # check ...
+    if not os.path.exists(basedir_out) :
+        os.makedirs(basedir_out)
+    else :
+        print( 'Target directory already exists, be careful to not overwrite other Opensource version' )
+        raise Exception
+    #endif
+    
+    # source files:
+    for sfile in ['README.txt'] :
+        # full path:
+        fname = os.path.join(basedir,sfile)
+        # present?
+        if os.path.isfile(fname) :
+            # info ..
+            print( '    %s ...' % sfile )
+            # target file:
+            fname_out = os.path.join(basedir_out,sfile)
+            # copy with all properties
+            shutil.copy2( fname, fname_out )
+        #endif
+    #endfor
+
+    # source directories
+    for sdir in ['bin', 'py', 'src', 'data', 'rc'] :
+
+        # Subdirectory
+        subdir = '%s/%s' % (basedir,sdir)
+        # skip if not present:
+        if not os.path.isdir(subdir) : continue
+        
+        # info ..
+        print( '  %s ...' % subdir )
+
+        # target:
+        subdir_out = '%s/%s' %(basedir_out,sdir)
+        # create if necessary:
+        if not os.path.exists( subdir_out ) : os.makedirs(subdir_out)
+
+        # loop over source files
+        filelist = os.listdir(subdir)
+        for ifile in filelist :
+            # skip directories:
+            if os.path.isdir( ifile ) : continue
+            # skip object files:
+            if ifile.endswith('.pyc') : continue
+            
+            # skip specific label files
+            if skip_labeling :
+                if 'label'  in ifile : continue
+                if 'SA'     in ifile : continue
+                if 'MKL'    in ifile : continue
+                if 'spblas' in ifile : continue
+            #endif
+            # skip specific m7 files
+            if skip_m7        and ('m7'         in ifile) : continue
+            # skip specific radiation files
+            if skip_radiation and ('radiation'  in ifile) : continue
+            if skip_radiation and ('output_rad' in ifile) : continue
+            #skip specific pollen files
+            if skip_pollen    and ('pollen'     in ifile) : continue
+
+            # input file ...
+            fname = '%s/%s' % (subdir,ifile)
+            
+            # info ...
+            print( '  %s ...' % fname )
+            
+            # target file:
+            fname_out = '%s/%s' %(subdir_out,ifile)
+
+            # source file?
+            if sdir in ['src'] :
+            
+                # open source file
+                f = open(fname, 'r')
+
+                # open output file:
+                ff = open(fname_out, 'w')
+
+                # read open source file
+                lines = f.readlines()
+                ifdefs = 0
+                wait_for_endif = False
+                for line in lines :
+                    endif_line = False
+                    # Skip parts between ifdef with_labeling
+                    if (skip_labeling  and line.startswith('#ifdef with_labeling' )) or \
+                       (skip_m7        and line.startswith('#ifdef with_m7'       )) or \
+                       (skip_radiation and line.startswith('#ifdef with_radiation')) or \
+                       (skip_pollen    and line.startswith('#ifdef with_pollen'   )) :
+                        # increase counter:
+                        ifdefs = ifdefs + 1
+                        # set flag:
+                        wait_for_endif = True
+                    #
+                    elif wait_for_endif and line.startswith('#endif') and ifdefs == 1 :
+                        wait_for_endif = False
+                        endif_line = True
+                        ifdefs = ifdefs - 1
+                    #
+                    elif wait_for_endif and (line.startswith('#ifdef') or line.startswith('#ifndef')) :
+                        ifdefs = ifdefs + 1
+                    #
+                    elif wait_for_endif and line.startswith('#endif') :
+                        ifdefs = ifdefs - 1
+                    #
+                    #endif
+
+                    # write to open source file (if line is not in between ifdef with_labeling .. endif
+                    if not wait_for_endif and not endif_line and ifdefs == 0 :
+                        ff.write(line)
+                    #endif
+                #endfor
+
+                # close output file:
+                ff.close()
+                # close input file:
+                f.close()
+
+            else :
+
+                # copy with all properties
+                shutil.copy2(fname,fname_out)
+                
+            #endif # src or other
+
+        #endfor # source files
+
+    #endfor # subdirs
+
+#endfor # base dirs
+
+# info ..
+print( '' )
+print( 'extra files ...' )
+for xfile in xfiles :
+    # skip if not present:
+    if not os.path.isfile( xfile ) : continue
+    # info ...
+    print( '  %s ...' % xfile )
+    # target file:
+    xfile_out = os.path.join( destdir, xfile )
+    # create dir if necessary:
+    dname = os.path.dirname( xfile_out )
+    if not os.path.isdir( dname ) : os.makedirs( dname )
+    # copy including properties:
+    shutil.copy2( xfile, xfile_out )
+#endfor
+
+# info ...
+print( '' )
+print( '** end' )
+print( '' )
+
+#-------------------------------------------------
+# end
+#-------------------------------------------------

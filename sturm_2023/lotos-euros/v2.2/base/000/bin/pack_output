@@ -1,0 +1,25 @@
+#! /bin/sh
+
+# 
+# Script to pack the netCDF4 LE-output 
+# Data will be saved as a short with offset and scale_factor
+# 
+# NB.
+# For further Fortran use. Scale factor and offset must be specified
+#
+# Packed files cannot be read correctly by GRADS
+#
+
+# original file given as argument by LOTOS EUROS
+origfile=$1
+
+# Temporal packed file
+packfile=$1'_packed'
+
+# Pack data
+ncpdq ${origfile} ${packfile}
+
+# Copy packed file back to original location (original will be overwritten)
+mv ${packfile} ${origfile}
+
+

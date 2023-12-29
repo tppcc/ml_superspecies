@@ -1,0 +1,32 @@
+This is meant to document all changes in the vbs-ML project, with respect to LE v2.2.001 base code. Hopefully this will help interpretability and perhaps future integration of machine learning into LOTOS-EUROS. 
+Obin Sturm
+posturm@ucdavis.edu
+
+Changes w.r.t. v2.2.001 base code
+=======================
+src/le_driver.F90
+
+src/le_vbs.F90
+  addition of subroutines:
+    LE_VBS_ML_Init (loads compression and decompression matrices from data directory)
+    LE_Compress (compresses tracers into superspecies)
+    LE_Decompress (decompress superspecies into tracers)
+
+rc/lotos-euros.rc
+
+rc/lotos-euros-control.rc
+
+rc/lotos-euros-output.rc
+
+rc/lotos-euros-output-control.rc
+
+rc/lotos-euros-bound-cams-rea-nrt.rc
+
+rc/lotos-euros-expert.rc  
+
+data
+  compression matrices
+
+data/tracers.csv
+  definition of gaseous and aerosol superspecies tracers
+  e.g. 

@@ -1,0 +1,119 @@
+#! /usr/bin/env python
+
+
+
+#
+# *** modules
+#
+
+# modules:
+import os
+import sys
+
+# extend path:
+sys.path.insert( 0, "/tsn.tno.nl/Data/SV/sv-059025_unix/ProjectData/VBS-machinelearning/users/Obin/Code/lotos-euros/v2.2/base/001/py" )
+
+# tools:
+import utopya
+
+
+#
+# *** environment modules
+#
+
+# check ...
+if "MODULESHOME" not in os.environ.keys() :
+    print( "ERROR - could not load environment modules without MODULESHOME" )
+    raise Exception
+#endif
+# initialization script for environment modules:
+initfile = os.path.join( os.environ["MODULESHOME"], "init", "python.py" )
+# check ...
+if not os.path.isfile(initfile) :
+    print( "ERROR - could not find environment modules initialization file: %s" % initfile )
+    raise Exception
+#endif
+# load module functions:
+exec( open(initfile).read() )
+
+# module commands:
+module( 'purge' )
+module( 'load', 'slurm/18.08.8' )
+module( 'load', 'anaconda3/2021.05' )
+module( 'load', 'curl/default' )
+module( 'load', 'openssl/default' )
+module( 'load', 'gcc-suite/8.2.0' )
+module( 'load', 'openmpi/4.0.5' )
+module( 'load', 'szip/2.1.1' )
+module( 'load', 'hdf5/1.12.0' )
+module( 'load', 'netcdf-c/4.7.4' )
+module( 'load', 'netcdf-fortran/4.5.3' )
+module( 'load', 'udunits/2.2.26' )
+module( 'load', 'makedepf90' )
+module( 'load', 'nco/4.8.1' )
+module( 'load', 'lapack/3.6.1' )
+module( 'load', 'spblas/1.02.917' )
+module( 'load', 'lotos-euros' )
+
+# show current modules:
+module( 'list' )
+
+# modules might have extended the PYTHONPATH environment variable,
+# but these are not automatically added to the python search path;
+# check enviornment:
+if "PYTHONPATH" in os.environ.keys() :
+    # extract as list:
+    ppaths = os.environ["PYTHONPATH"].split(":")
+    # reverse order to have correct order for inserting:
+    ppaths.reverse()
+    # add to search path
+    for ppath in ppaths :
+        # insert at start if not present yet:
+        if ppath not in sys.path : sys.path.insert(0,ppath)
+    #endfor # paths
+#endif  # PYTHONPATH defined
+
+#
+# *** variables
+#
+
+# current:
+name = "le.copy"
+
+# job variables:
+env = {}
+
+
+#
+# *** task(s)
+#
+
+# task class:
+tskclass = utopya.ImportClass( "utopya.UtopyaCopy" )
+# create task object and initialize, which does the actual work:
+tsk = tskclass( 'proj/vbs-ML/001/rc/lotos-euros.rc', rcbase='le' )
+
+
+#
+# *** next job
+#
+
+# workdir:
+wdir = "/Scratch/sturmpo/projects/LOTOS-EUROS-ML/feb_parallel/run"
+# create if necessary:
+if not os.path.isdir( wdir ) : os.makedirs( wdir )
+# goto:
+os.chdir( wdir )
+
+# job step class:
+jbsclass = utopya.ImportClass( "utopya.UtopyaJobStep" )
+# create job step object:
+jbs = jbsclass( "le.build", "/Scratch/sturmpo/projects/LOTOS-EUROS-ML/feb_parallel/run/lotos-euros.rc", rcbase="jobtree", env=env )
+# write job file and start:
+jbs.Run()
+
+
+
+#
+# *** end
+#

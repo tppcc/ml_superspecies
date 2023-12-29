@@ -1,0 +1,264 @@
+!#######################################################################
+!
+! TNO / Azoren computing server
+!
+!#######################################################################
+
+
+!----------------------------------------------------------------------
+! user names
+!----------------------------------------------------------------------
+
+! used for output attributes ...
+
+! name of institution:
+user.institution             :  TUD/EWI
+
+! extract user long name from environment variable:
+user.longname                :  ${USER}
+
+
+!----------------------------------------------------------------------
+! compiler settings
+!----------------------------------------------------------------------
+
+! GNU Fortran Compiler
+#include base/${my.patch.nr}/rc/compiler-gcc-4.7.1.rc
+
+
+! compilers with MPI enabled:
+! o same compilers, flags defined in options:
+!mpi.compiler.fc                     :  ${compiler.fc}
+!mpi.compiler.fc.openmp              :  ${compiler.fc.openmp}
+! o use wrapper:
+mpi.compiler.fc                     :  mpif90
+mpi.compiler.fc.openmp              :  mpif90
+
+
+!----------------------------------------------------------------------
+! Environment Modules
+!----------------------------------------------------------------------
+
+!
+! An "Envionment Module" file could be loaded by the scripts
+! to setup environment variables. The file specified here will
+! be searched for in the 'env' subdirs of the directory list
+! in 'build.copy.dirs' (or its user definition 'my.source.dirs'),
+! the latest match will be used.
+! 
+! Example of the content of a module file:
+!
+!    #%Module1.0
+!    module load hdf
+!    module load hdf5
+!    module load netcdf
+!
+! NOTE: The python interface of Environment Modules v3.2.8 is buggy,
+! there is at least a problem with the implementation of 'unuse' .
+! For this version a fix is made in the EnvMod module.
+! If the EnvMod module crashes and reports strange names in the module 
+! search path, then it might be this for your version too.
+!
+! NOTE: If the environment variables are only used to set library paths
+! in the 'compiler.lib.*' lines, then consider to use '$(.)' expressions 
+! instead of '${.}', thus:
+!    compiler.lib.netcdf.libs      : -L$(NETCDF_HOME)/lib -lnetcdf
+! In this case the values will not be expanded when reading the
+! rcfile, but instead this will be left for 'make' when processing
+! the Makefiles, and 'make' will be called from a python script that
+! has loaded the module file. Alternative is to let the module file
+! be loaded when evaluating the rcfile, see below.
+!
+env.module.file      :  
+
+!
+! If a module file needs to be loaded for certain settings in
+! the rcfile, then specify the name as argument of an '#envmod'
+! special line. This should be the (relative) path to the file
+! in its 'env' subdirectory, so no searching in 'build.copy.dirs' .
+! Only one of these lines might be present, since otherwise
+! the order of evaluation could influence the result.
+!
+!#envmod proj/envmod/${my.branch}/env/${env.module.file}
+
+
+!----------------------------------------------------------------------
+! libraries
+!----------------------------------------------------------------------
+
+! (optional) macro to enable udunits library:
+!my.udunits.define             :  
+my.udunits.define             :  with_udunits1
+!my.udunits.define             :  with_udunits2
+
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+! Z library (used for compression in HDF):
+compiler.lib.z.fflags           : 
+compiler.lib.z.libs             : -lz
+
+! JPEG library (used for compression in HDF):
+compiler.lib.jpeg.fflags        : 
+compiler.lib.jpeg.libs          : -ljpeg
+
+! SZ library (used for compression in HDF):
+SZIP_HOME                       : /usr/lib
+compiler.lib.sz.fflags          : 
+compiler.lib.sz.libs            : -L${SZIP_HOME}/lib -lsz -Wl,-rpath
+
+!! HDF4 library:
+!compiler.lib.hdf4.fflags        : -I${HDF4_HOME}/include
+!compiler.lib.hdf4.libs          : -L${HDF4_HOME}/lib -lmfhdf -ldf
+
+!! HDF5 library:
+!compiler.lib.hdf5.fflags        : 
+!compiler.lib.hdf5.libs          : -L${HDF5_HOME}/lib -lhdf5_hl -lhdf5
+
+! NetCDF library: actually netcdf4, add hdf5 which is not added automatically for 'with_netcdf' :
+!compiler.lib.netcdf.fflags	: ${compiler.lib.netcdf4.fflags} ${compiler.lib.hdf5.fflags}
+!compiler.lib.netcdf.libs	: ${compiler.lib.netcdf4.libs}   ${compiler.lib.hdf5.libs}
+NETCDF_HOME                     : /opt64/netcdf-4.3.0
+compiler.lib.netcdf.fflags	: -I${NETCDF_FORTRAN_HOME}/include -I${NETCDF_HOME}/include
+compiler.lib.netcdf.libs	: -L${NETCDF_FORTRAN_HOME}/lib -lnetcdff -L${NETCDF_HOME}/lib -lnetcdf
+
+!! NetCDF4 library:
+!#if "${NETCDF4_FORTRAN_VERSION}" == ""
+!! fortran interface included in c-library:
+!compiler.lib.netcdf4.fflags     : -I${NETCDF4_HOME}/include
+!compiler.lib.netcdf4.libs       : -L${NETCDF4_HOME}/lib -lnetcdf
+!#else
+!! fortran interface in seperate library:
+!compiler.lib.netcdf4.fflags     : -I${NETCDF4_FORTRAN_HOME}/include
+!compiler.lib.netcdf4.libs       : -L${NETCDF4_FORTRAN_HOME}/lib -lnetcdff -L${NETCDF4_HOME}/lib -lnetcdf
+!#endif
+
+! UDUnits library:
+compiler.lib.udunits1.fflags    : -I${UDUNITS_HOME}/include
+compiler.lib.udunits1.libs      : -L${UDUNITS_HOME}/lib -ludunits
+
+!compiler.lib.mpi.fflags         : 
+!compiler.lib.mpi.libs           : 
+!
+!! Intel Math Kernel Library
+!#if "${COMPILER_SUITE}" == "intel" :
+!compiler.lib.mkl.fflags         : -I${MKL_HOME}/include/${MKL_ARCH}/${MKL_ADDR}
+!compiler.lib.mkl.libs           : -lmkl_intel_${MKL_ADDR} -lmkl_sequential -lmkl_core
+!#endif
+!
+!! LaPack library:
+!compiler.lib.lapack.fflags      : 
+!compiler.lib.lapack.libs        : -L${LAPACK_HOME}/lib -llapack -lblas
+
+
+!----------------------------------------------------------------------
+! makedep
+!----------------------------------------------------------------------
+
+! Is makedepf90 installed?
+! This flag is used in the 'expert.rc' settings:
+my.with.makedep            :  True
+
+
+!----------------------------------------------------------------------
+! maker
+!----------------------------------------------------------------------
+
+! default number of build jobs that can be used,
+! this is passed to 'build.jobs' in the expert rc:
+my.build.jobs       :  1
+
+! make command; 
+! the setup script will insert the 'build.jobs' specified in the expert.rc
+! or passed as argument to the setup script:
+!
+maker               :  gmake -j %{build.jobs}
+
+
+!----------------------------------------------------------------------
+! MPI runner
+!----------------------------------------------------------------------
+
+! command and arguments; no command file written, thus executable and arguments are added
+mpirun.command     :  mpiexec
+mpirun.args        :  -np ${par.ntask}
+
+! name of command file; if empty, then executable and arguments are added to the command line
+mpirun.cmdfile     :  
+
+! name of host file:
+mpirun.hostfile    : 
+
+
+!----------------------------------------------------------------------
+! debugger
+!----------------------------------------------------------------------
+
+! debugger type: totalview | idb | kdbg
+debugger                :  idb
+
+! command for debugger:
+debugger.command        :  idb
+
+
+!----------------------------------------------------------------------
+! jobs
+!----------------------------------------------------------------------
+
+! where to submit jobs to by default ?
+my.submit.to.default               : foreground
+
+! allowed destinations:
+my.submit.to.allowed               : foreground background
+
+! shell to use in job scripts:
+! o python scripts:
+job.shell.python                   : /usr/bin/env python
+
+
+!----------------------------------------------------------------------
+! shell options
+!----------------------------------------------------------------------
+
+! for running in foreground or background;
+! add python code that is directly inserted in header
+
+shell.options.default       :
+
+shell.options.init          :  
+
+! number of threads:
+#if "${par.openmp}" in ["yes","True","T"] :
+my.nthread                  :  ${par.nthread}
+#else
+my.nthread                  :  1
+#endif
+
+shell.options.run           :  \n\
+# machine specific settings:\n\
+import os\n\
+os.putenv( 'OMP_NUM_THREADS', '${my.nthread}' )
+
+shell.options.done          :
+
+
+!----------------------------------------------------------------------
+! model data
+!----------------------------------------------------------------------
+
+! the user scratch directory:
+my.scratch                    :  ${SCRATCH}
+!my.scratch                    :  ${HOME}/scratch
+
+! model data:
+!MODELS                        :  /modas/shared/models
+
+! observation data:
+OBSERVATIONS                  :
+
+! base path to input data files:
+!my.data.dir                   :  ${MODELS}/LOTOS-EUROS/data
+my.data.dir                   :  ${VOLCANO}/data
+
+!! extra install tasks:
+!my.install.tasks              :
+
