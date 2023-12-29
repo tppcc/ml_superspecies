@@ -26,6 +26,10 @@ class NMF:
         #self.dimensionality_check()
         self.kernel_size=kernel_size
 
+    def directory_check(self, directory):
+        # Check if directory eixst, if == False create direcotry
+        if os.path.exists(directory) == False:
+            os.makedirs(directory)
 
     def inheretence_check(self):
         if self.inheretence == False:
@@ -45,7 +49,7 @@ class NMF:
         instance = nmf.nmf.NMF(shape, rank=rank)
         return instance
 
-    def trainer(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0):
+    def trainer(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0, storage=True, intermediate_stop=50):
         # Training Projection Matrix
         self.Projection_BaseComponent = self.nmf([V.shape[0], V.shape[1]], rank=self.rank)
         Reconstruction_BaseComponent = self.nmf([self.rank, V.shape[1]], rank=V.shape[0])
@@ -56,8 +60,18 @@ class NMF:
             Reconstruction = nmf.nmf.NMF(H=Reconstruction_B, W=V[:,:,i], rank=V.shape[0], trainable_W = False)
             Reconstruction.fit(self.Projection_BaseComponent.W, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
             Reconstruction_B = Reconstruction.H
-            if np.mod((i + 1), 5):
+            if np.mod((i + 1), 5) == 0:
                 print("%s iterations completed, %s time component remaining" %((i + 1), (V.shape[2] - i + 1)))
+            # Intermediate stop storage to avoid Overfitting
+            if storage == True:
+                self.directory_check(os.path.join(self.cwd, "trained_matrix_backup"))
+                if np.mod((i+1), intermediate_stop) == 0:
+                    with torch.no_grad():
+                        dt = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        torch.save(self.BaseComponent.H,
+                                   os.path.join(self.cwd, "backup_W_%s_%s.pth" % (i, dt)))
+                        torch.save(Reconstruction_B, os.path.join(self.cwd, "backup_B_%s_%s.pth" % (i, dt)))
+                        print("Trained weight saved at %s" % (self.cwd))
         print("Training completed")
         with torch.no_grad():
             dt = datetime.now().strftime("%Y%m%d_%H%M%S")
