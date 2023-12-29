@@ -57,7 +57,7 @@ class NMF:
             Reconstruction.fit(self.Projection_BaseComponent.W, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
             Reconstruction_B = Reconstruction.H
             if np.mod((i + 1), 5):
-                print("%s iterations completed, %s time component remaining" %((i + 1), (V.shape[2] + 1)))
+                print("%s iterations completed, %s time component remaining" %((i + 1), (V.shape[2] - i + 1)))
         print("Training completed")
         with torch.no_grad():
             dt = datetime.now().strftime("%Y%m%d_%H%M%S")
