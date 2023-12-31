@@ -6,7 +6,7 @@ module nmp_module
     integer, parameter :: x = ! Define the value of x
     integer, parameter :: y = ! Define the value of y
     integer, parameter :: z = ! Define the value of z
-    real(8), allocatable :: trained_W(:, :), trained_B(:, :)
+    real(32), allocatable :: trained_W(:, :), trained_B(:, :)
 contains
 
     subroutine get_unique_unit_number(unit)
@@ -30,6 +30,18 @@ contains
         real, intent(out) :: array(:, :)
         integer, intent(in) :: m, r
         integer :: iostat, file_unit
+
+        ! Check if array is already allocated with correct dimensions
+        if (allocated(array) .and. size(array, 1) == m .and. size(array, 2) == r) then
+            ! The array is already correctly allocated, no need to reload
+            return
+        endif
+
+        ! If not correctly allocated, deallocate if necessary and reallocate
+        if (allocated(array)) then
+            deallocate(array)
+        endif
+        allocate(array(m, r))
 
         ! Get a unique file unit number
         call get_unique_unit_number(file_unit)
@@ -60,6 +72,18 @@ contains
         integer :: lda, ldb, ldc
         real(8) :: alpha, beta
 
+        ! Ensure V_flattened is allocated with the correct dimensions
+        if (.not. allocated(V_flattened) .or. size(V_flattened, 1) /= m .or. size(V_flattened, 2) /= x * y * z) then
+            if (allocated(V_flattened)) deallocate(V_flattened)
+            allocate(V_flattened(m, x * y * z))
+        endif
+
+        ! Ensure H is allocated with the correct dimensions
+        if (.not. allocated(H) .or. size(H, 1) /= r .or. size(H, 2) /= x * y * z) then
+            if (allocated(H)) deallocate(H)
+            allocate(H(r, x * y * z))
+        endif
+
         ! Flatten V
         V_flattened = reshape(V, [m, x * y * z])
 
@@ -89,6 +113,18 @@ contains
         integer :: lda, ldb, ldc
         real(8) :: alpha, beta
 
+        ! Ensure H_advected_flattened is allocated with the correct dimensions
+        if (.not. allocated(H_advected_flattened) .or. size(H_advected_flattened, 1) /= r .or. size(H_advected_flattened, 2) /= x * y * z) then
+            if (allocated(H_advected_flattened)) deallocate(H_advected_flattened)
+            allocate(H_advected_flattened(r, x * y * z))
+        endif
+
+        ! Ensure V_reconstructed is allocated with the correct dimensions
+        if (.not. allocated(V_reconstructed) .or. size(V_reconstructed, 1) /= m .or. size(V_reconstructed, 2) /= x * y * z) then
+            if (allocated(V_reconstructed)) deallocate(V_reconstructed)
+            allocate(V_reconstructed(m, x * y * z))
+        endif
+
         ! Flatten H_advected
         H_advected_flattened = reshape(H_advected, [r, x * y * z])
 
@@ -114,6 +150,15 @@ end module nmp_module
 program main
     use nmp_module
     implicit none
+    character (len = *) :: path_trained_B, path_trained_W
+    integer :: m, r
+    real(32), allocatable :: trained_B(:, :), trained_W(:, :), V(:, :, :), H_mc(:, :, :), V_reconstructed_mc(:, :, :), H_advected
+
+    trained_B = load_trained_matrices(path_trained_B, trained_B, m, r)
+    trained_W = load_trained_matrices(path_trained_W, trained_W, m, r)
+
+    H_mc = project_to_latent_space(V)
+    V_reconstructed_mc = reconstruct_to_source_space(H_advected)
     ! Define and initialize V, H_advected, etc. as needed
     ! Call functions project_to_latent_space and reconstruct_to_source_space
 

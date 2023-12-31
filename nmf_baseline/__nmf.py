@@ -46,19 +46,19 @@ class NMF:
     def nmf(self, shape, rank, **kwargs):
         #initialise NMF class
         #instance = nmf.nmf.NMF(H=self.H, W=self.W, rank=rank)
-        instance = nmf.nmf.NMF(shape, rank=rank)
+        instance = nmf.nmf.NMF(shape, rank=rank, **kwargs)
         return instance
 
-    def trainer(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0, storage=True, intermediate_stop=50):
+    def trainer(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0, storage=True, intermediate_stop=50, **kwargs):
         # Training Projection Matrix
-        self.Projection_BaseComponent = self.nmf([V.shape[0], V.shape[1]], rank=self.rank)
-        Reconstruction_BaseComponent = self.nmf([self.rank, V.shape[1]], rank=V.shape[0])
+        Projection_BaseComponent = self.nmf([V.shape[0], V.shape[1]], rank=self.rank, **kwargs)
+        Reconstruction_BaseComponent = self.nmf([self.rank, V.shape[1]], rank=V.shape[0], **kwargs)
         Reconstruction_B = Reconstruction_BaseComponent.H
         print("Training start, V has %s time component" %(V.shape[2]))
         for i in np.arange(V.shape[2]):
-            self.Projection_BaseComponent.fit(V[:,:,i], beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
+            Projection_BaseComponent.fit(V[:,:,i], beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
             Reconstruction = nmf.nmf.NMF(H=Reconstruction_B, W=V[:,:,i], rank=V.shape[0], trainable_W = False)
-            Reconstruction.fit(self.Projection_BaseComponent.W, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
+            Reconstruction.fit(Projection_BaseComponent.W, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
             Reconstruction_B = Reconstruction.H
             if np.mod((i + 1), 5) == 0:
                 print("%s iterations completed, %s time component remaining" %((i + 1), (V.shape[2] - i + 1)))
@@ -68,10 +68,10 @@ class NMF:
                 if np.mod((i+1), intermediate_stop) == 0:
                     with torch.no_grad():
                         dt = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        torch.save(self.BaseComponent.H,
+                        torch.save(Projection_BaseComponent.H,
                                    os.path.join(self.cwd, "backup_W_%s_%s.pth" % (i, dt)))
                         torch.save(Reconstruction_B, os.path.join(self.cwd, "backup_B_%s_%s.pth" % (i, dt)))
-                        print("Trained weight saved at %s" % (self.cwd))
+                        print("Intermediate weight saved at iteration" % (i + 1))
         print("Training completed")
         with torch.no_grad():
             dt = datetime.now().strftime("%Y%m%d_%H%M%S")
