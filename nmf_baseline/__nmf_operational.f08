@@ -1,12 +1,9 @@
 module nmp_module
     use, intrinsic :: iso_fortran_env, only : int64
     implicit none
-    integer, parameter :: m = ! Define the value of m
-    integer, parameter :: r = ! Define the value of r
-    integer, parameter :: x = ! Define the value of x
-    integer, parameter :: y = ! Define the value of y
-    integer, parameter :: z = ! Define the value of z
     real(32), allocatable :: trained_W(:, :), trained_B(:, :)
+    integer, parameter :: m = size(trained_B, 1)
+    integer, parameter :: r = size(trained_B, 2)
 contains
 
     subroutine get_unique_unit_number(unit)
@@ -65,7 +62,11 @@ contains
     end subroutine load_trained_matrices
 
     function project_to_latent_space(V) result(H_mc)
-        real(8), intent(in) :: V(m, x, y, z)
+        real(8), intent(in) :: V(:, :, :, :)
+        integer, parameter :: m = size(array, 1)
+        integer, parameter :: x = size(array, 2)
+        integer, parameter :: y = size(array, 3)
+        integer, parameter :: z = size(array, 4)
         real(8) :: V_flattened(m, x * y * z), H(r, x * y * z), H_mc(r, x, y, z)
         integer(int64) :: s_com
         external :: dgemm
@@ -105,7 +106,11 @@ contains
     end function project_to_latent_space
 
     function reconstruct_to_source_space(H_advected) result(V_reconstructed_mc)
-        real(8), intent(in) :: H_advected(r, x, y, z)
+        real(8), intent(in) :: H_advected(:, :, :, :)
+        integer, parameter :: r = size(array, 1)
+        integer, parameter :: x = size(array, 2)
+        integer, parameter :: y = size(array, 3)
+        integer, parameter :: z = size(array, 4)
         real(8) :: H_advected_flattened(r, x * y * z), V_reconstructed(m, x * y * z)
         real(8) :: V_reconstructed_mc(m, x, y, z)
         integer(int64) :: s_rec

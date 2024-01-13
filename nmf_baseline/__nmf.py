@@ -16,15 +16,19 @@ import os
 
 
 class NMF:
-    def __init__(self, rank=None, kernel_size=(1,1,1)):     # inheritance=False, H_init=None, W_init=None,
+    def __init__(self, m_size = None, n_size = None, rank=None):     # inheritance=False, H_init=None, W_init=None,
         self.cwd = os.getcwd()
         #self.inheritance = inheritance_check()
         #self.W = H_init
         #self.H = W_init
         #self.inheretence_check()
+        self.n_size = n_size
         self.rank = rank
         #self.dimensionality_check()
-        self.kernel_size=kernel_size
+        self.Projection_BaseComponent = self.nmf([m_size, n_size], rank=self.rank, **kwargs)
+        self.Reconstruction_BaseComponent = self.nmf([self.rank, n_size], rank=m_size, **kwargs)
+        self.B = self.Reconstruction_BaseComponent.H
+        self.i = 0
 
     def directory_check(self, directory):
         # Check if directory eixst, if == False create direcotry
@@ -50,31 +54,28 @@ class NMF:
         return instance
 
     def trainer(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0, storage=True, intermediate_stop=50, **kwargs):
-        # Training Projection Matrix
-        Projection_BaseComponent = self.nmf([V.shape[0], V.shape[1]], rank=self.rank, **kwargs)
-        Reconstruction_BaseComponent = self.nmf([self.rank, V.shape[1]], rank=V.shape[0], **kwargs)
-        Reconstruction_B = Reconstruction_BaseComponent.H
         print("Training start, V has %s time component" %(V.shape[2]))
-        for i in np.arange(V.shape[2]):
-            Projection_BaseComponent.fit(V[:,:,i], beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
-            Reconstruction = nmf.nmf.NMF(H=Reconstruction_B, W=V[:,:,i], rank=V.shape[0], trainable_W = False)
-            Reconstruction.fit(Projection_BaseComponent.W, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
-            Reconstruction_B = Reconstruction.H
-            if np.mod((i + 1), 5) == 0:
-                print("%s iterations completed, %s time component remaining" %((i + 1), (V.shape[2] - i + 1)))
-            # Intermediate stop storage to avoid Overfitting
-            if storage == True:
-                self.directory_check(os.path.join(self.cwd, "trained_matrix_backup"))
-                if np.mod((i+1), intermediate_stop) == 0:
-                    with torch.no_grad():
-                        dt = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        torch.save(Projection_BaseComponent.H,
-                                   os.path.join(self.cwd, "backup_W_%s_%s.pth" % (i, dt)))
-                        torch.save(Reconstruction_B, os.path.join(self.cwd, "backup_B_%s_%s.pth" % (i, dt)))
-                        print("Intermediate weight saved at iteration" % (i + 1))
+        self.Projection_BaseComponent.fit(V, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
+        self.W = self.Projection_BaseComponent.W
+        self.Reconstruction_BaseComponent = nmf.nmf.NMF(H=self.B, W=V, rank=V.shape[0], trainable_W = False)
+        self.Reconstruction_BaseComponent.fit(self.W, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
+        self.B = self.Reconstruction_BaseComponent.H
+        if np.mod((self.i + 1), 5) == 0:
+            print("%s iterations completed, %s time component remaining" %((self.i + 1), (V.shape[2] - self.i + 1)))
+        # Intermediate stop storage to avoid Overfitting
+        if storage == True:
+            self.directory_check(os.path.join(self.cwd, "trained_matrix_backup"))
+            if np.mod((self.i+1), intermediate_stop) == 0:
+                with torch.no_grad():
+                    dt = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    torch.save(self.Projection_BaseComponent.H,
+                               os.path.join(self.cwd, "backup_W_%s_%s.pth" % (self.i, dt)))
+                    torch.save(self.B, os.path.join(self.cwd, "backup_B_%s_%s.pth" % (self.i, dt)))
+                    print("Intermediate weight saved at iteration" % (self.i + 1))
+        self.i += 1
         print("Training completed")
         with torch.no_grad():
             dt = datetime.now().strftime("%Y%m%d_%H%M%S")
-            torch.save(self.BaseComponent.H, os.path.join(self.cwd, "trained_W_%s.pth" %(dt)))
-            torch.save(Reconstruction_B, os.path.join(self.cwd, "trained_B_%s.pth" % (dt)))
+            torch.save(self.Projection_BaseComponent.H, os.path.join(self.cwd, "trained_W_%s.pth" %(dt)))
+            torch.save(self.B, os.path.join(self.cwd, "trained_B_%s.pth" % (dt)))
             print("Trained weight saved at %s" %(self.cwd))
