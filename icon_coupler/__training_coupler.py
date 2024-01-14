@@ -6,20 +6,21 @@ import comin.plugins.python_adapter.comin as comin
 
 @comin.register_callback(comin.EP_SECONDARY_CONSTRUCTOR)
 def SC_initialisation():
-    global nmf, autoencoder, model
-    nmf = NMF(rank=40)
-    autoencoder = train()
+    global nmf, autoencoder, model, rank, tracer
+    rank = 40
+    nmf = NMF(rank=rank)
+    autoencoder = train(rank, num_epochs = 50, lr=(0.01, 1e-3), batch_size=10)
     model = nmf
-
-def TracerConstructor():
-    global tracer
     EP = [comin.EP_ATM_ADVECTION_BEFORE, comin.EP_ATM_ADVECTION_AFTER]
-    tracer = comin.var_get([comin.EP_ATM_ADVECTION_BEFORE], ("tracer", comin.DEFAULT_DOMAIN_ID))
+    tracer = comin.var_get(EP, ("tracer", comin.DEFAULT_DOMAIN_ID))
 
 @comin.register_callback(comin.EP_ATM_ADVECTION_BEFORE)
 def DimensionalityReduction():
+    #Tracer as Numpy Array
     tracer_ADVECTION_BEFORE = np.asarray(tracer)
-    tracer_ADVECTION_BEFORE = model.trainer(tracer_ADVECTION_BEFORE)
+    #Fit to model, obtain
+    model.fit(tracer_ADVECTION_BEFORE)
+    tracer_ADVECTION_BEFORE = model.W
 
 
 @comin.register_callback(comin.EP_ATM_ADVECTION_AFTER)

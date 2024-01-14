@@ -53,7 +53,7 @@ class NMF:
         instance = nmf.nmf.NMF(shape, rank=rank, **kwargs)
         return instance
 
-    def trainer(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0, storage=True, intermediate_stop=50, **kwargs):
+    def fit(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0, storage=True, intermediate_stop=50, **kwargs):
         print("Training start, V has %s time component" %(V.shape[2]))
         self.Projection_BaseComponent.fit(V, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
         self.W = self.Projection_BaseComponent.W
