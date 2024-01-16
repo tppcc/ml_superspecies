@@ -1,6 +1,7 @@
 from nmf_baseline import *
 from autoencoder import *
 import os
+import time
 import numpy as np
 import numexpr as ne
 import comin.plugins.python_adapter.comin as comin
@@ -21,13 +22,11 @@ class validation_model():
     def __init__(self):
         self.test = 0
     def compression(self, tracer):
-        import time
-        time.sleep(0.1)
-        return tracer
+        H = model.compression(tracer)
+        return H
     def decompression(self, tracer):
-        import time
-        time.sleep(0.1)
-        return tracer
+        H = model.decompression(tracer)
+        return H
 
 tracer = np.random.randn(100, 5000)
 model = validation_model()
@@ -47,7 +46,7 @@ def DimensionalityReduction():
     # Evaluate Mass Conservation constrain
     tracer_MC_ADVECTION_BEFORE = ne.evaluate("s_com*tracer_ADVECTION_BEFORE")
     # return compressed array to tracer pointer
-    tracer_ADVECTION_BEFORE = tracer_MC_ADVECTION_BEFORE
+    np.asarray(tracer)[:] = tracer_MC_ADVECTION_BEFORE
 
 
 @comin.register_callback(comin.EP_ATM_ADVECTION_AFTER)
@@ -62,4 +61,4 @@ def DimensionalityReconstruction():
     # Evaluate Mass Conservation constrain
     tracer_MC_ADVECTION_AFTER = ne.evaluate("s_com*tracer_ADVECTION_AFTER")
     # return decompressed array to tracer pointer
-    tracer_ADVECTION_AFTER = tracer_MC_ADVECTION_AFTER
+    np.asarray(tracer)[:] = tracer_MC_ADVECTION_AFTER

@@ -73,6 +73,8 @@ class NMF:
                     torch.save(self.B, os.path.join(self.cwd, "backup_B_%s_%s.pth" % (self.i, dt)))
                     print("Intermediate weight saved at iteration" % (self.i + 1))
         self.i += 1
+
+    def model_save(self):
         print("Training completed")
         with torch.no_grad():
             dt = datetime.now().strftime("%Y%m%d_%H%M%S")

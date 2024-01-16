@@ -14,14 +14,32 @@ def SC_initialisation():
     EP = [comin.EP_ATM_ADVECTION_BEFORE, comin.EP_ATM_ADVECTION_AFTER]
     tracer = comin.var_get(EP, ("tracer", comin.DEFAULT_DOMAIN_ID))
 
+##################### ONLINE LEARNING MODULE #####################
+
 @comin.register_callback(comin.EP_ATM_ADVECTION_BEFORE)
 def DimensionalityReduction():
+    global W
     #Tracer as Numpy Array
     tracer_ADVECTION_BEFORE = np.asarray(tracer)
     #Fit to model, obtain
     model.fit(tracer_ADVECTION_BEFORE)
-    tracer_ADVECTION_BEFORE = model.W
+    W = model.W
+    np.asarray(tracer)[:] = W
 
+@comin.register_callback(comin.EP_ATM_ADVECTION_AFTER)
+def DimensionalityReconstruction():
+    tracer_ADVECVTION_AFTER = np.asarray(tracer)
+    tracer_ADVECVTION_AFTER = model.reconstruction(tracer_ADVECVTION_AFTER)
+
+##################### OFFLINE LEARNING MODULE #####################
+
+@comin.register_callback(comin.EP_ATM_ADVECTION_BEFORE)
+def DimensionalityReduction():
+    global W
+    #Tracer as Numpy Array
+    tracer_ADVECTION_BEFORE = np.asarray(tracer)
+    #Fit to model, obtain
+    model.fit(tracer_ADVECTION_BEFORE)
 
 @comin.register_callback(comin.EP_ATM_ADVECTION_AFTER)
 def DimensionalityReconstruction():
