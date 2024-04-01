@@ -2,6 +2,7 @@ import torch
 from torchnmf.nmf import NMF
 from torchnmf.metrics import beta_div
 import matplotlib.pyplot as plt
+import nmf_baseline
 
 #V shape = 20, 10
 H = torch.rand(20, 5)
