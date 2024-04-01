@@ -1,11 +1,11 @@
-ptf = '/work/bb1070/b382290/ml_superspecies_icon_idealised/icon_r02b07_dust/DUST_NO_SOURCE_SINK/out/comin_output/advection_before/'
-
 import time
+
 import numpy as np
 import torch
-import nmf_baseline
 
-####################################################
+import nmf_baseline
+from .__utils import RootMeanSquare, RelativeRootMeanSquare
+
 r""" Wrapper of nmf_baseline
 
  This class gives a one-stop solution of training the projection matrix of NMF based on Slurm et al. (2023)
@@ -78,7 +78,8 @@ class NonNegTrainer:
                                                 while initiaising this class instance
         """
 
-        assert data.shape[1] >= self.__m_size, "dimension 1 of the flattened array has a smaller size than the selected m_size in this class instance"
+        assert data.shape[
+                   1] >= self.__m_size, "dimension 1 of the flattened array has a smaller size than the selected m_size in this class instance"
 
         if data.shape[1] != self.__m_size:
             self.batching_flag = True
@@ -88,6 +89,25 @@ class NonNegTrainer:
         else:
             # Return a one element list containing the data
             return [data]
+
+    def __benchmarking(self, x_train, B, W):
+        r"""
+        Benchmarking for the current batch using RMSE and RRMSE (See __utils)
+        Args:
+            x_train (ndarray):Array for training
+            B (ndarray or Tensor): Projection Tensor/Matrix to latent space
+            W (ndarray or Tensor): Reconstruction Tensor/Matrix to source space
+        Return:
+            rmse (float): Root Mean Square Error
+            rrmse (float): Relative Root Mean Square Error
+        """
+
+        x_predict = W @ (B @ x_train)
+        rmse = RootMeanSquare(x_train, x_predict)
+        rrmse = RelativeRootMeanSquare(x_train, x_predict, rmse)
+        return rmse, rrmse
+
+    def
 
     def __training(self, x_train):
         r"""Training backend of the class self.__preprocess_and_fit
@@ -100,10 +120,11 @@ class NonNegTrainer:
             self.nmf_instance = nmf_baseline.NMF(self.__n_size, self.__m_size, rank=self.__rank)
 
         self.nmf_instance.fit(torch.tensor(x_train), **self.hyperparameters)
+        B, W = self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H
 
-    def __benchmarking(self, x_train):
+        rmse, rrmse = self.__benchmarking(x_train, B, W)
 
-        return x_train
+        return rmse, rrmse
 
     def __compute(self, training_data):
         r"""Backend for self.fit() This function preprocess the training_data (list(ndarray)),
@@ -113,6 +134,10 @@ class NonNegTrainer:
             training_data (list(ndarray)): list of species array, length of training_data must be the same as n_size
         """
 
+        rmse_total = []
+        rrmse_total = []
+
+        # Preprocess and batching of the input training data
         data = self.__species_preprocessing(training_data)
         data = self.__batching(data)
 
@@ -120,10 +145,16 @@ class NonNegTrainer:
         start_time = time.time()
 
         for x_train in data:
-            self.__training(x_train)
-            rmse, rrmse = self.
+            rmse, rrmse = self.__training(x_train)
 
-        print('Training for the current step completed, time_elapsed=%s' % (time.time() - start_time))
+        print(
+            ' Training for the current step completed, time_elapsed=%s \n Benchmark: \n RMSE: %s, RRMSE: %s' % (
+            time.time() - start_time, rmse, rrmse))
+
+        rmse_total.append(rmse)
+        rrmse_total.append(rrmse)
+
+        return rmse_total, rrmse_total
 
     def fit(self, training_data, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0,
             l1_ratio=0, storage=True, intermediate_stop=500):
@@ -131,6 +162,8 @@ class NonNegTrainer:
         Args:
             training_data (list(ndarray)): list of species array, dimension must be the same
             beta and beyond: see torchnmf.nmf.NMF documentation, these arguments are passed directly to torchnmnf backend
+        Return:
+            B (Tensor): Trained projection matrix for the given
         """
 
         # Pass hyperparameters as dictionary
