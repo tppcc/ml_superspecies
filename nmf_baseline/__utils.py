@@ -31,3 +31,7 @@ def RelativeRootMeanSquare(self, y, y_predict, rmse=None):
         return np.sum(np.sqrt((1 / y.size) * np.sum(np.square(y_predict - y))) / np.sum(y))
     else:
         raise Exception("incorrect data type for rmse (float)")
+
+
+    def __error_estimation(self, rmse, rrmse):
+        fig, axs = plt.subplots(1, 2, figsize=(8, 4))

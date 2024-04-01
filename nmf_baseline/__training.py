@@ -16,15 +16,19 @@ r""" Wrapper of nmf_baseline
 
 class NonNegTrainer:
     def __init__(self, output_dir, n_size, m_size, rank, n_process=1):
-        r"""initialise matrix
+        r"""
+        Initializes an instance.
+
         Args:
-            output_dir    (char): Direcotry for W, B matrix
-            n_size         (int): Size of input channels
-            m_size         (int): Size of each batch of input
-            rank           (int): Size of channel in latent space
-            n_process      (int): (default: 1) number of parallel processes to be initiated for training, performance critical,
-                                    keep in mind of the memory restriction of the host system
+            output_dir (str): Directory for storing the matrices W and B.
+            n_size (int): Size of input channels.
+            m_size (int): Size of each batch of input.
+            rank (int): Size of channel in latent space.
+            n_process (int): Number of parallel processes to be initiated for training.
+                            Default is 1. This parameter is performance-critical.
+                            Keep in mind the memory restrictions of the host system.
         """
+
         # Assert type of input values
         assert ((type(n_size) == int) & (type(m_size) == int) & (
                 type(rank) == int)), "dtype of (n_size, m_size, rank) must be int"
@@ -107,7 +111,6 @@ class NonNegTrainer:
         rrmse = RelativeRootMeanSquare(x_train, x_predict, rmse)
         return rmse, rrmse
 
-    def
 
     def __training(self, x_train):
         r"""Training backend of the class self.__preprocess_and_fit
@@ -163,7 +166,10 @@ class NonNegTrainer:
             training_data (list(ndarray)): list of species array, dimension must be the same
             beta and beyond: see torchnmf.nmf.NMF documentation, these arguments are passed directly to torchnmnf backend
         Return:
-            B (Tensor): Trained projection matrix for the given
+            B (Tensor): Trained projection matrix for the given training data
+            W (Tensor): trained reconstruction matrix for the given training data
+            rmse (list): list of RMSE for each training batch
+            rrmse (list): list of RRMSE for each training batch
         """
 
         # Pass hyperparameters as dictionary
@@ -180,4 +186,4 @@ class NonNegTrainer:
         rmse, rrmse = self.__compute(training_data)
 
         # Return matrix to and from latent projection
-        return self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H
+        return self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H, rmse, rrmse
