@@ -3,5 +3,25 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/comin" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon-dkrz" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/art" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/cdi" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/comin" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/dace_icon" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/ecrad" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/emvorado" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/fortran-support" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/hd" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/jsbach" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/mtime" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/ppm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/probtest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/rte-rrtmgp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/sct" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/tixi" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/yac" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/externals/yaxt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/icon/utils/mkexp" vcs="Git" />
   </component>
 </project>

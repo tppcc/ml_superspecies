@@ -11,8 +11,8 @@ import copy
 class NMF_operational:
     def __init__(self, W_path, H_path, trainable_W=False):
         #Initialising tensors, Hyperparameters from class initialisation call
-        self.H_path = H_path
-        self.W_path = W_path
+        self.H_path = W_path
+        self.W_path = H_path
         self.trainable_H = trainable_W
 
         #Validity check
