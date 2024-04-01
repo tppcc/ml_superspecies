@@ -25,8 +25,8 @@ class NMF:
         self.n_size = n_size
         self.rank = rank
         #self.dimensionality_check()
-        self.Projection_BaseComponent = self.nmf([m_size, n_size], rank=self.rank, **kwargs)
-        self.Reconstruction_BaseComponent = self.nmf([self.rank, n_size], rank=m_size, **kwargs)
+        self.Projection_BaseComponent = self.nmf([m_size, n_size], rank=self.rank)
+        self.Reconstruction_BaseComponent = self.nmf([self.rank, n_size], rank=m_size)
         self.B = self.Reconstruction_BaseComponent.H
         self.i = 0
 
@@ -53,15 +53,16 @@ class NMF:
         instance = nmf.nmf.NMF(shape, rank=rank, **kwargs)
         return instance
 
-    def fit(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0, storage=True, intermediate_stop=50, **kwargs):
-        print("Training start, V has %s time component" %(V.shape[2]))
+    def fit(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0, storage=True, intermediate_stop=500, **kwargs):
+        #print("Training start, V has %s time component" %(V.shape[2]))
         self.Projection_BaseComponent.fit(V, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
         self.W = self.Projection_BaseComponent.W
-        self.Reconstruction_BaseComponent = nmf.nmf.NMF(H=self.B, W=V, rank=V.shape[0], trainable_W = False)
-        self.Reconstruction_BaseComponent.fit(self.W, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
+        self.H = self.Projection_BaseComponent.H
+        self.Reconstruction_BaseComponent = nmf.nmf.NMF(H=self.B, W=V.T, rank=V.shape[0], trainable_W = False)
+        self.Reconstruction_BaseComponent.fit(self.W.T, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
         self.B = self.Reconstruction_BaseComponent.H
-        if np.mod((self.i + 1), 5) == 0:
-            print("%s iterations completed, %s time component remaining" %((self.i + 1), (V.shape[2] - self.i + 1)))
+        #if np.mod((self.i + 1), 30) == 0:
+            #print("%s iterations completed, %s time component remaining" %((self.i + 1), (V.shape[2] - self.i + 1)))
         # Intermediate stop storage to avoid Overfitting
         if storage == True:
             self.directory_check(os.path.join(self.cwd, "trained_matrix_backup"))
@@ -71,7 +72,7 @@ class NMF:
                     torch.save(self.Projection_BaseComponent.H,
                                os.path.join(self.cwd, "backup_W_%s_%s.pth" % (self.i, dt)))
                     torch.save(self.B, os.path.join(self.cwd, "backup_B_%s_%s.pth" % (self.i, dt)))
-                    print("Intermediate weight saved at iteration" % (self.i + 1))
+                    print("Intermediate weight saved at iteration %s" % (self.i + 1))
         self.i += 1
 
     def model_save(self):
