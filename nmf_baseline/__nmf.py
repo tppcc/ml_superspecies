@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-
 import numpy as np
 import torch
 import torchnmf as nmf
@@ -16,7 +15,7 @@ r"""
 
 class NMF:
     def __init__(self, m_size=None, n_size=None, rank=None):
-        """
+        r"""
         Initializes an instance of the NMF class.
 
         Args:
@@ -30,26 +29,28 @@ class NMF:
 
         # Initializing the Projection_BaseComponent and Reconstruction_BaseComponent using nmf function
         # and assigning to corresponding attributes
-        self.Projection_BaseComponent = self.nmf([m_size, n_size], rank=self.rank)
-        self.Reconstruction_BaseComponent = self.nmf([self.rank, n_size], rank=m_size)
+        self.Projection_BaseComponent = self.__nmf([m_size, n_size], rank=self.rank)
+        self.Reconstruction_BaseComponent = self.__nmf([self.rank, n_size], rank=m_size)
 
         # Setting B attribute to the H attribute of Reconstruction_BaseComponent
         self.B = self.Reconstruction_BaseComponent.H
 
         self.i = 0  # Initializing i attribute to 0
 
-    def directory_check(self, directory):
-        """
+    def __directory_check(self, directory):
+        r"""
         Checks if a directory exists. If not, creates the directory.
 
         Args:
             directory (str): The directory path to check/create.
+        Returns:
+            None
         """
         if not os.path.exists(directory):  # Check if directory exists
             os.makedirs(directory)  # Create directory if it doesn't exist
 
-    def nmf(self, shape, rank, **kwargs):
-        """
+    def __nmf(self, shape, rank, **kwargs):
+        r"""
         Initializes an instance of the NMF class.
 
         Args:
@@ -67,7 +68,7 @@ class NMF:
 
     def fit(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0,
             storage=True, intermediate_stop=500, **kwargs):
-        """
+        r"""
         Fits the NMF model to the input data.
 
         Args:
@@ -81,6 +82,8 @@ class NMF:
             storage (bool): Whether to store intermediate results.
             intermediate_stop (int): Interval for storing intermediate results.
             **kwargs: Additional keyword arguments.
+        Returns:
+            None
         """
         # Training start message
         # print("Training start, V has %s time component" %(V.shape[2]))
@@ -102,7 +105,7 @@ class NMF:
 
         # Intermediate stop storage to avoid Overfitting
         if storage == True:
-            self.directory_check(os.path.join(self.cwd, "trained_matrix_backup"))
+            self.__directory_check(os.path.join(self.cwd, "trained_matrix_backup"))
             if np.mod((self.i + 1), intermediate_stop) == 0:
                 with torch.no_grad():
                     dt = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -112,12 +115,15 @@ class NMF:
                     print("Intermediate weight saved at iteration %s" % (self.i + 1))
         self.i += 1  # Incrementing iteration counter
 
-
     def model_save(self):
-        """
+        r"""
         Saves the trained model weights.
 
         Prints a message indicating completion and saves the model weights to files.
+        Args:
+            None
+        Returns:
+            None
         """
         print("Training completed")  # Indicating completion of training
         with torch.no_grad():
@@ -126,4 +132,5 @@ class NMF:
             torch.save(self.Projection_BaseComponent.H,
                        os.path.join(self.cwd, "trained_W_%s.pth" % (dt)))
             torch.save(self.B, os.path.join(self.cwd, "trained_B_%s.pth" % (dt)))
-            print("Trained weight saved at %s" % (self.cwd))  # Printing the directory where weights are saved
+            print("Trained weight saved at %s" % (
+                self.cwd))  # Printing the directory where weights are saved

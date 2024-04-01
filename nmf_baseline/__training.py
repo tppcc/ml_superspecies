@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 import nmf_baseline
-from .__utils import RootMeanSquare, RelativeRootMeanSquare
+from .__utils import RootMeanSquare, RelativeRootMeanSquare,ErrorPlot
 
 r""" Wrapper of nmf_baseline
 
@@ -116,6 +116,8 @@ class NonNegTrainer:
         r"""Training backend of the class self.__preprocess_and_fit
         Args:
             x_train (ndarray(n_size, m_size)): training data for each thread for further processing
+        Returns:
+            None
         """
 
         # Initialise nmf_baseline class instance if it does not already already, i.e. fit is run already
@@ -135,6 +137,8 @@ class NonNegTrainer:
         batching is performed such that the training data is split along axis-1 with ( q // m_size).
         Args:
             training_data (list(ndarray)): list of species array, length of training_data must be the same as n_size
+        Returns:
+            None
         """
 
         rmse_total = []
@@ -156,6 +160,8 @@ class NonNegTrainer:
 
         rmse_total.append(rmse)
         rrmse_total.append(rrmse)
+
+        ErrorPlot(rmse, rrmse, self.output_dir)
 
         return rmse_total, rrmse_total
 
