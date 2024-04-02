@@ -1,23 +1,17 @@
-import torchnmf as nmf
-import numpy as np
-import xarray as xr
-import torch
-from datetime import datetime
-import os
 import copy
+
+import torch
+import torchnmf as nmf
+from .__utils import *
+
 
 #trainable_W: when True, W matrix will be learned when operational
 
 class NMF_operational:
-    def __init__(self, W_path, H_path, trainable_W=False):
+    def __init__(self, W_path, H_path):
         #Initialising tensors, Hyperparameters from class initialisation call
         self.H_path = W_path
         self.W_path = H_path
-        self.trainable_H = trainable_W
-
-        #Validity check
-        if isinstance(trainable_W) == False:
-            raise Exception("traiable_W should be boolean")
 
         #Load W,H tensor
         self.W = torch.load(H_path)
@@ -31,7 +25,7 @@ class NMF_operational:
     def nmf(self):
         #initialise NMF class
         # can be changed to NMF3D H (N,R, x, y, z)
-        instance = nmf.nmf.NMF(H=self.H, W=self.W, trainable_H=self.trainable_H)
+        instance = nmf.nmf.NMF(H=self.H, W=self.W, trainable_H=False)
         return instance
 
     def compression(self, V, beta=1, tol=0.0001, max_iter=200, verbose=False, alpha=0, l1_ratio=0):

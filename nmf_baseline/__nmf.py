@@ -72,7 +72,7 @@ class NMF:
         Fits the NMF model to the input data.
 
         Args:
-            V (numpy.ndarray): Input data.
+            V (Tensor): Input data.
             beta (float): Parameter for regularization.
             tol (float): Tolerance value for convergence.
             max_iter (int): Maximum number of iterations.
@@ -105,32 +105,12 @@ class NMF:
 
         # Intermediate stop storage to avoid Overfitting
         if storage == True:
-            self.__directory_check(os.path.join(self.cwd, "trained_matrix_backup"))
+            self.__directory_check(os.path.join(self.cwd, "bkp"))
             if np.mod((self.i + 1), intermediate_stop) == 0:
                 with torch.no_grad():
                     dt = datetime.now().strftime("%Y%m%d_%H%M%S")
                     torch.save(self.Projection_BaseComponent.H,
-                               os.path.join(self.cwd, "backup_W_%s_%s.pth" % (self.i, dt)))
-                    torch.save(self.B, os.path.join(self.cwd, "backup_B_%s_%s.pth" % (self.i, dt)))
+                               os.path.join(self.cwd, "bkp", "backup_W_%s_%s.pth" % (self.i, dt)))
+                    torch.save(self.B, os.path.join(self.cwd, "bkp", "backup_B_%s_%s.pth" % (self.i, dt)))
                     print("Intermediate weight saved at iteration %s" % (self.i + 1))
         self.i += 1  # Incrementing iteration counter
-
-    def model_save(self):
-        r"""
-        Saves the trained model weights.
-
-        Prints a message indicating completion and saves the model weights to files.
-        Args:
-            None
-        Returns:
-            None
-        """
-        print("Training completed")  # Indicating completion of training
-        with torch.no_grad():
-            dt = datetime.now().strftime("%Y%m%d_%H%M%S")  # Getting current date and time
-            # Saving Projection_BaseComponent.H and B to files
-            torch.save(self.Projection_BaseComponent.H,
-                       os.path.join(self.cwd, "trained_W_%s.pth" % (dt)))
-            torch.save(self.B, os.path.join(self.cwd, "trained_B_%s.pth" % (dt)))
-            print("Trained weight saved at %s" % (
-                self.cwd))  # Printing the directory where weights are saved

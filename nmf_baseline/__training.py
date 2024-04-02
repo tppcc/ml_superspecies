@@ -3,8 +3,8 @@ import time
 import numpy as np
 import torch
 
-import nmf_baseline
-from .__utils import RootMeanSquare, RelativeRootMeanSquare,ErrorPlot
+from .__nmf import NMF
+from .__utils import RootMeanSquare, RelativeRootMeanSquare, ErrorPlot, SaveModel
 
 r""" Wrapper of nmf_baseline
 
@@ -122,7 +122,7 @@ class NonNegTrainer:
 
         # Initialise nmf_baseline class instance if it does not already already, i.e. fit is run already
         if not hasattr(self, 'nmf_instance'):
-            self.nmf_instance = nmf_baseline.NMF(self.__n_size, self.__m_size, rank=self.__rank)
+            self.nmf_instance = NMF(self.__n_size, self.__m_size, rank=self.__rank)
 
         self.nmf_instance.fit(torch.tensor(x_train), **self.hyperparameters)
         B, W = self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H
@@ -190,6 +190,8 @@ class NonNegTrainer:
 
         # Perform data preprocessing and fitting serially with protected class property
         rmse, rrmse = self.__compute(training_data)
+
+        SaveModel(self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H, self.output_dir)
 
         # Return matrix to and from latent projection
         return self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H, rmse, rrmse
