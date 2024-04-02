@@ -1,6 +1,5 @@
 import datetime
 import os
-from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import matplotlib.pyplot as plt
 import numpy as np
@@ -79,6 +78,16 @@ def __np_loading(fname):
 
     return np.load(fname)
 
+def Stack(input_array):
+    r""" Static Method
+    Flatten each input species into 1-D ndarray(q,)
+    Args:
+        input_array (ndarray): Numpy Array of each species (jc, jk, jc) when coupled to ICON (ComIn)
+    Return:
+        (ndarray(q,)): Ravelled 1-D array
+    """
+
+    return np.hstack([x.ravel() for x in input_array])
 
 def MultipleFileLoad(fpaths, n_processes):
     r"""Routine to read multiple files in parallelized manner. This script utilises the concurrent package of Python to parallel

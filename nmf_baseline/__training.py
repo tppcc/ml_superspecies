@@ -1,10 +1,11 @@
+import multiprocessing
 import time
 
 import numpy as np
 import torch
 
 from .__nmf import NMF
-from .__utils import RootMeanSquare, RelativeRootMeanSquare, ErrorPlot, SaveModel
+from .__utils import RootMeanSquare, RelativeRootMeanSquare, ErrorPlot, SaveModel, Stack
 
 r""" Wrapper of nmf_baseline
 
@@ -38,18 +39,6 @@ class NonNegTrainer:
         self.__n_process = n_process
         self.output_dir = output_dir
 
-    def __stack(self, input_array):
-        r""" Flatten each input species into 1-D ndarray(q,)
-        Args:
-            input_array (ndarray): Numpy Array of each species (jc, jk, jc) when coupled to ICON (ComIn)
-        Return:
-            (ndarray(q,)): Ravelled 1-D array
-        """
-
-        # Perform data check, input must be numpy array
-        assert type(input_array) == np.ndarray, "Input must be a numpy array"
-        return input_array.ravel()
-
     def __species_preprocessing(self, data):
         r"""Preprocess each data
         Args:
@@ -62,13 +51,13 @@ class NonNegTrainer:
         assert len(
             data) == self.__n_size, "Number of speices does not match with value of n_size (%s) initialised in this instnace" % (
             self.__n_size)
-        assert all([(type(x) == np.ndarray) for x in
-                    data]), "Some elements in the input list is not np.ndarray"
-        assert all([(x.size == data[0].size) for x in
-                    data]), "Size of array is not the same for all arrays"
 
         # Preprocessing: flatten each array and concat as a ndarray with dimnension (n_size, q) [q: size of sample space]
-        data = [self.__stack(x) for x in data]
+        with multiprocessing.Pool(processes=self.__n_process) as pool:
+            data = pool.map(Stack, data)
+
+        [print(x.shape) for x in data]
+
         data = np.vstack(data)
 
         return data
