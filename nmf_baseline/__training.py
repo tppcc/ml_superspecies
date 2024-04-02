@@ -111,7 +111,6 @@ class NonNegTrainer:
         rrmse = RelativeRootMeanSquare(x_train, x_predict, rmse)
         return rmse, rrmse
 
-
     def __training(self, x_train):
         r"""Training backend of the class self.__preprocess_and_fit
         Args:
@@ -119,6 +118,9 @@ class NonNegTrainer:
         Returns:
             None
         """
+
+        # timer for training
+        start_time = time.time()
 
         # Initialise nmf_baseline class instance if it does not already already, i.e. fit is run already
         if not hasattr(self, 'nmf_instance'):
@@ -128,6 +130,10 @@ class NonNegTrainer:
         B, W = self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H
 
         rmse, rrmse = self.__benchmarking(x_train, B, W)
+
+        print(
+            ' Training for the current step completed, time_elapsed=%s \n Benchmark: \n RMSE: %s, RRMSE: %s' % (
+                time.time() - start_time, rmse, rrmse))
 
         return rmse, rrmse
 
@@ -148,20 +154,12 @@ class NonNegTrainer:
         data = self.__species_preprocessing(training_data)
         data = self.__batching(data)
 
-        # timer for training
-        start_time = time.time()
-
         for x_train in data:
             rmse, rrmse = self.__training(x_train)
+            rmse_total.append(rmse)
+            rrmse_total.append(rrmse)
 
-        print(
-            ' Training for the current step completed, time_elapsed=%s \n Benchmark: \n RMSE: %s, RRMSE: %s' % (
-            time.time() - start_time, rmse, rrmse))
-
-        rmse_total.append(rmse)
-        rrmse_total.append(rrmse)
-
-        ErrorPlot(rmse, rrmse, self.output_dir)
+        ErrorPlot(rmse_total, rrmse_total, self.output_dir)
 
         return rmse_total, rrmse_total
 
@@ -191,7 +189,8 @@ class NonNegTrainer:
         # Perform data preprocessing and fitting serially with protected class property
         rmse, rrmse = self.__compute(training_data)
 
-        SaveModel(self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H, self.output_dir)
+        SaveModel(self.nmf_instance.Projection_BaseComponent.H,
+                  self.nmf_instance.Reconstruction_BaseComponent.H, self.output_dir)
 
         # Return matrix to and from latent projection
         return self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H, rmse, rrmse

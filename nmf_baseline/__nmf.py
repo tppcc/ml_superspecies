@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+
 import numpy as np
 import torch
 import torchnmf as nmf
@@ -111,6 +112,7 @@ class NMF:
                     dt = datetime.now().strftime("%Y%m%d_%H%M%S")
                     torch.save(self.Projection_BaseComponent.H,
                                os.path.join(self.cwd, "bkp", "backup_W_%s_%s.pth" % (self.i, dt)))
-                    torch.save(self.B, os.path.join(self.cwd, "bkp", "backup_B_%s_%s.pth" % (self.i, dt)))
+                    torch.save(self.B,
+                               os.path.join(self.cwd, "bkp", "backup_B_%s_%s.pth" % (self.i, dt)))
                     print("Intermediate weight saved at iteration %s" % (self.i + 1))
         self.i += 1  # Incrementing iteration counter

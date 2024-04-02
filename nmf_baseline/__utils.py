@@ -1,14 +1,15 @@
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import os
 import datetime
-import torch
+import os
 from concurrent.futures import ThreadPoolExecutor
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
 r"""
 Some utilities to support the main functions
 """
+
 
 def RootMeanSquare(y, y_predict):
     r"""Calculates the Root Mean Square Error
@@ -21,6 +22,7 @@ def RootMeanSquare(y, y_predict):
 
     assert y.shape == y_predict.shape, "The input y and y_predict is not the same"
     return np.sum(np.sqrt((1 / y.size) * np.sum(np.square(y_predict - y))))
+
 
 def RelativeRootMeanSquare(y, y_predict, rmse=None):
     r"""Calculates the Relative (Normalised) Root Mean Square Error
@@ -42,6 +44,7 @@ def RelativeRootMeanSquare(y, y_predict, rmse=None):
     else:
         raise Exception("incorrect data type for rmse (float)")
 
+
 def ErrorPlot(rmse, rrmse, output_dir):
     r"""Plots RMSE and RRMSE for error estimation.
 
@@ -60,10 +63,11 @@ def ErrorPlot(rmse, rrmse, output_dir):
     axs[0].set_title("Relative RMSE of training")
 
     t_now = datetime.now()
-    plot_out = os.path.join(output_dir, 'training_error_%s.jpg') %(t_now.strftime("%y%m%d%H%M%S"))
+    plot_out = os.path.join(output_dir, 'training_error_%s.jpg') % (t_now.strftime("%y%m%d%H%M%S"))
     plt.savefig(plot_out)
 
-    print("Error estimation plot saved at %s" %(plot_out))
+    print("Error estimation plot saved at %s" % (plot_out))
+
 
 def __np_loading(fname):
     r"""Routine to read NP arrays, used only for parallelization
@@ -75,10 +79,12 @@ def __np_loading(fname):
 
     return np.load(fname)
 
-def MultipleFileLoad(self, fpaths, n_processes):
+
+def MultipleFileLoad(fpaths, n_processes):
     r"""Routine to read multiple files in parallelized manner. This script utilises the concurrent package of Python to parallel
     Args:
         fpaths (list): Sorted list of absolute or relative path to the files for reading
+        n_processes (int): Number of parallelised processes
     Returns:
         data (list): list of np.darrays returned from loading the arrays
     """
@@ -87,9 +93,11 @@ def MultipleFileLoad(self, fpaths, n_processes):
     with ThreadPoolExecutor(max_workers=n_processes) as executor:
         futures_execution = executor.submit(__np_loading, [fname for fname in fpaths])
 
-        dusta = futures_execution.result()
+        result = futures_execution.result()
+    return result
 
-def SaveModel(self, B, W, output_dir):
+
+def SaveModel(B, W, output_dir):
     r"""
     Saves the trained model weights.
 
@@ -103,7 +111,7 @@ def SaveModel(self, B, W, output_dir):
         None
     """
     with torch.no_grad():
-        dt = datetime.now().strftime("%Y%m%d_%H%M%S")  # Getting current date and time
+        dt = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  # Getting current date and time
         # Saving Projection_BaseComponent.H and B to files
         torch.save(W, os.path.join(output_dir, "trained_W_%s.pth" % (dt)))
         torch.save(B, os.path.join(output_dir, "trained_B_%s.pth" % (dt)))
