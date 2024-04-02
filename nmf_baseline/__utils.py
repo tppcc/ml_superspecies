@@ -1,7 +1,7 @@
 import datetime
 import os
 from concurrent.futures import ThreadPoolExecutor
-
+import multiprocessing
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -90,10 +90,10 @@ def MultipleFileLoad(fpaths, n_processes):
     """
 
     n_processes = n_processes
-    with ThreadPoolExecutor(max_workers=n_processes) as executor:
-        futures_execution = executor.submit(__np_loading, [fname for fname in fpaths])
+    #Split workload across n_processes
+    with multiprocessing.Pool(processes=n_processes) as pool:
+        result = pool.map(__np_loading, fpaths)
 
-        result = futures_execution.result()
     return result
 
 
