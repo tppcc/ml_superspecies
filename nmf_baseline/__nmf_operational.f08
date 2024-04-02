@@ -89,8 +89,8 @@ contains
         V_flattened = reshape(V, [m, x * y * z])
 
         ! Set parameters for GEMM
-        alpha = 1.0d0
-        beta = 0.0d0
+        alpha = 1.0_wp
+        beta = 0.0_wp
         lda = m
         ldb = r
         ldc = r
