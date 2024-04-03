@@ -15,7 +15,7 @@ r"""
 
 
 class NMF:
-    def __init__(self, m_size=None, n_size=None, rank=None):
+    def __init__(self, n_size=None, m_size=None, rank=None):
         r"""
         Initializes an instance of the NMF class.
 
@@ -26,15 +26,16 @@ class NMF:
         """
         self.cwd = os.getcwd()  # Getting the current working directory
         self.n_size = n_size  # Assigning n_size attribute
+        self.m_size = m_size
         self.rank = rank  # Assigning rank attribute
 
         # Initializing the Projection_BaseComponent and Reconstruction_BaseComponent using nmf function
         # and assigning to corresponding attributes
-        self.Projection_BaseComponent = self.__nmf([m_size, n_size], rank=self.rank)
-        self.Reconstruction_BaseComponent = self.__nmf([self.rank, n_size], rank=m_size)
+        self.Projection_BaseComponent = self.__nmf([self.rank, self.m_size], rank=self.n_size)
+        self.Reconstruction_BaseComponent = self.__nmf([self.n_size, self.m_size], rank=self.rank)
 
         # Setting B attribute to the H attribute of Reconstruction_BaseComponent
-        self.B = self.Reconstruction_BaseComponent.H
+        self.B = self.Projection_BaseComponent.H
 
         self.i = 0  # Initializing i attribute to 0
 
@@ -90,19 +91,19 @@ class NMF:
         # print("Training start, V has %s time component" %(V.shape[2]))
 
         # Fitting Projection_BaseComponent
-        self.Projection_BaseComponent.fit(V, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose,
+        self.Reconstruction_BaseComponent.fit(V, beta=beta, tol=tol, max_iter=max_iter, verbose=verbose,
                                           alpha=alpha, l1_ratio=l1_ratio)
 
         # Getting W and H matrices from Projection_BaseComponent
-        self.W = self.Projection_BaseComponent.W
-        self.H = self.Projection_BaseComponent.H
+        self.W = self.Reconstruction_BaseComponent.W
+        self.H = self.Reconstruction_BaseComponent.H
 
         # Fitting Reconstruction_BaseComponent
-        self.Reconstruction_BaseComponent = nmf.nmf.NMF(H=self.B, W=V.T, rank=V.shape[0],
+        self.Projection_BaseComponent = nmf.nmf.NMF(H=self.B, W=V.T, rank=self.n_size,
                                                         trainable_W=False)
-        self.Reconstruction_BaseComponent.fit(self.W.T, beta=beta, tol=tol, max_iter=max_iter,
+        self.Projection_BaseComponent.fit(self.W.T, beta=beta, tol=tol, max_iter=max_iter,
                                               verbose=verbose, alpha=alpha, l1_ratio=l1_ratio)
-        self.B = self.Reconstruction_BaseComponent.H
+        self.B = self.Projection_BaseComponent.H
 
         # Intermediate stop storage to avoid Overfitting
         if storage == True:
@@ -110,7 +111,7 @@ class NMF:
             if np.mod((self.i + 1), intermediate_stop) == 0:
                 with torch.no_grad():
                     dt = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    torch.save(self.Projection_BaseComponent.H,
+                    torch.save(self.Reconstruction_BaseComponent.H,
                                os.path.join(self.cwd, "bkp", "backup_W_%s_%s.pth" % (self.i, dt)))
                     torch.save(self.B,
                                os.path.join(self.cwd, "bkp", "backup_B_%s_%s.pth" % (self.i, dt)))

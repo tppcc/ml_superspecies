@@ -56,8 +56,6 @@ class NonNegTrainer:
         with multiprocessing.Pool(processes=self.__n_process) as pool:
             data = pool.map(Stack, data)
 
-        [print(x.shape) for x in data]
-
         data = np.vstack(data)
 
         return data
@@ -77,7 +75,11 @@ class NonNegTrainer:
         if data.shape[1] != self.__m_size:
             self.batching_flag = True
             batch_number = data.shape[1] // self.__m_size
-            return np.array_split(data, batch_number, axis=1)
+            dump_column = data.shape[1] % self.__m_size
+            if dump_column != 0:
+                print(
+                    "The array size is not divisible by selected m_size, will dump some elements in amount of the remainder in dimension-1")
+            return np.array_split(data[:, :-dump_column], batch_number, axis=1)
 
         else:
             # Return a one element list containing the data
@@ -116,9 +118,9 @@ class NonNegTrainer:
             self.nmf_instance = NMF(self.__n_size, self.__m_size, rank=self.__rank)
 
         self.nmf_instance.fit(torch.tensor(x_train), **self.hyperparameters)
-        B, W = self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H
+        B, W = self.nmf_instance.B, self.nmf_instance.H
 
-        rmse, rrmse = self.__benchmarking(x_train, B, W)
+        rmse, rrmse = self.__benchmarking(x_train, B.detach().clone().numpy(), W.detach().clone().numpy())
 
         print(
             ' Training for the current step completed, time_elapsed=%s \n Benchmark: \n RMSE: %s, RRMSE: %s' % (
@@ -182,4 +184,4 @@ class NonNegTrainer:
                   self.nmf_instance.Reconstruction_BaseComponent.H, self.output_dir)
 
         # Return matrix to and from latent projection
-        return self.nmf_instance.Projection_BaseComponent.H, self.nmf_instance.Reconstruction_BaseComponent.H, rmse, rrmse
+        return self.nmf_instance.B, self.nmf_instance.H, rmse, rrmse

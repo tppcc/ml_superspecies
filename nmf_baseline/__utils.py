@@ -36,12 +36,9 @@ def RelativeRootMeanSquare(y, y_predict, rmse=None):
 
     assert y.shape == y_predict.shape, "The input y and y_predict is not the same"
     if rmse != None:
-        assert type(rmse) == float, "incorrect data type for rmse (float)"
         return rmse / np.sum(y)
     elif rmse == None:
         return np.sum(np.sqrt((1 / y.size) * np.sum(np.square(y_predict - y))) / np.sum(y))
-    else:
-        raise Exception("incorrect data type for rmse (float)")
 
 
 def ErrorPlot(rmse, rrmse, output_dir):
@@ -61,7 +58,7 @@ def ErrorPlot(rmse, rrmse, output_dir):
     axs[0].set_title("RMSE of training")
     axs[0].set_title("Relative RMSE of training")
 
-    t_now = datetime.now()
+    t_now = datetime.datetime.now()
     plot_out = os.path.join(output_dir, 'training_error_%s.jpg') % (t_now.strftime("%y%m%d%H%M%S"))
     plt.savefig(plot_out)
 
