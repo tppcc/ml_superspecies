@@ -20,7 +20,7 @@ def RootMeanSquare(y, y_predict):
     """
 
     assert y.shape == y_predict.shape, "The input y and y_predict is not the same"
-    return np.sum(np.sqrt((1 / y.size) * np.sum(np.square(y_predict - y))))
+    return np.mean(np.sqrt((1 / y.size) * np.sum(np.square(y_predict - y))))
 
 
 def RelativeRootMeanSquare(y, y_predict, rmse=None):
@@ -36,9 +36,9 @@ def RelativeRootMeanSquare(y, y_predict, rmse=None):
 
     assert y.shape == y_predict.shape, "The input y and y_predict is not the same"
     if rmse != None:
-        return rmse / np.sum(y)
+        return rmse / np.mean(y)
     elif rmse == None:
-        return np.sum(np.sqrt((1 / y.size) * np.sum(np.square(y_predict - y))) / np.sum(y))
+        return np.mean(np.sqrt((1 / y.size) * np.sum(np.square(y_predict - y))) / np.mean(y))
 
 
 def ErrorPlot(rmse, rrmse, output_dir):
@@ -56,7 +56,7 @@ def ErrorPlot(rmse, rrmse, output_dir):
     axs[0].plot(rmse, color='red', label='RMSE')
     axs[1].plot(rrmse, color='red', label='RRMSE')
     axs[0].set_title("RMSE of training")
-    axs[0].set_title("Relative RMSE of training")
+    axs[1].set_title("Relative RMSE of training")
 
     t_now = datetime.datetime.now()
     plot_out = os.path.join(output_dir, 'training_error_%s.jpg') % (t_now.strftime("%y%m%d%H%M%S"))
