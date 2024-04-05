@@ -8,5 +8,5 @@ environmental_dict = EnvParameters()
 
 # Fetch nwp variable that exists in all models
 for model in environmental_dict.model_url:
-    model_load(model, environmental_dict)
-
+    ModelLoad(model, environmental_dict)
+    locals()['da_' + model] = DataProcessing(model, environmental_dict)

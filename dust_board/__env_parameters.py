@@ -55,6 +55,9 @@ class EnvParameters:
             'asob_s': 'Net surface direct solar radiation',
             'aswdifd_s': 'Surface downwards diffused solar radiation',
         }
-        self.icon_grid = {
-            'dwd_nwp': 'icon_0005_R03B06_R.nc'
+        self.source_grid = {
+            'dwd_nwp': '/path/to/icon_0005_R03B06_R.nc'
+        }
+        self.target_grid = {
+            'dwd_nwp': '/path/to/dwd_nwp.txt'
         }
