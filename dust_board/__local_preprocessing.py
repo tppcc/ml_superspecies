@@ -1,17 +1,79 @@
-import xarray as xr
 import os
-import matplotlib as mpl
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pytz
+import xarray as xr
+
+
+def LocalTime(time_obj):
+    r"""
+    Convert DateTime object to <DOW>, <DD> <MM> <YY> <HH><Z>
+    :param time_obj:
+    :return:
+    """
+    # Convert UTC to CEST (Central European Summer Time)
+    cest = pytz.timezone('Europe/Berlin')
+    dt_cest = time_obj.astimezone(cest)
+
+    # Format the datetime object
+    return dt_cest.strftime("%a, %d %b. %Y %H%Z")
+
 
 def Grib2nc(fpath, source_grid, target_grid):
     os.system('module load cdo')
     # Assign grid to
-    os.system(f'cdo -f nc4 -remapnn,f{target_grid} -setgrid,f{source_grid} icon_pollen_description.txt f{fpath} f{fpath}.nc')
+    os.system(
+        f'cdo -f nc4 -remapnn,f{target_grid} -setgrid,f{source_grid} icon_pollen_description.txt f{fpath} f{fpath}.nc')
 
     fpath_nc = fpath + '.nc'
 
     return fpath_nc
+
+
+def Plotting(da, vname, model, parameters_dict):
+    r"""
+    Plot the data array and pass it to <local_directory>/plots/
+    :param da:
+    :param model:
+    :param parameters_dict:
+    :return:
+    """
+    env_dict = parameters_dict
+
+    plot_dir = os.path.join(env_dict.local_directory[model], 'plots')
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
+
+    time = da.time
+
+    for i in range(time):
+        plot_time = np.datetime_as_string(da.time.values[i], unit='m')
+        plot_data = da.loc[dict(time=plot_time)]
+
+        # Convert K to C
+        if vname == 't_2m':
+            plot_data = plot_data - 273.15
+
+        title_init_time = LocalTime(env_dict.model_init_time)
+        ctime = da.time.values[i].astype('datetime64[s]').tolist()
+        title_current_time = LocalTime(ctime)
+
+        # Define the levels to be 20, between the max and min value with 20 % margin
+        levels = np.arange(plot_data.min() - (plot_data.min() * 0.2),
+                           plot_data.max() + (plot_data.max() * 0.2), 20)
+
+        fig = plt.plot(figsize=[20, 10])
+        plt.rc('font', size=18)
+        plt.contourf(plot_data.lon, plot_data.lat, plot_data, levels=levels, cmap='RdBu_r')
+        plt.title(env_dict.long_names[vname], loc='center')
+        plt.title('Init. time: ' + title_init_time, loc='left', size=14)
+        plt.title('Current: ' + title_current_time, loc='right', size=14)
+        plt.ylabel('Latitude / $^oN$')
+        plt.ylabel('Longitude / $^oE$')
+
+        plt.savefig(os.path.join(plot_dir, (vname + '_' + plot_time + '.jpg')), bbox_inches='tight')
+
 
 def DataProcessing(model, parameters_dict):
     r"""
@@ -42,37 +104,59 @@ def DataProcessing(model, parameters_dict):
 
         Plotting(locals()[vname], vname, model, env_dict)
 
-    return locals()[vname]
+    return [locals()[x] for x in vnames]
 
-def Plotting(da, vname, model, parameters_dict):
+
+def PreprocessingMeteogram(da, target_lon, target_lat):
     r"""
-    Plot the data array and pass it to <local_directory>/plots/
-    :param da:
-    :param model:
+    Interpolate input field into a point based product
+    :param da: Data Array to be interpolated
+    :type: xr.DataArray
+    :param target_lon:
+    :type: float
+    :param target_lat:
+    :type: float
+    :return: Interpolated xr.DataArray
+    :rtype: xr.DataArray
+    """
+    return da.interp({'lat': target_lat, 'lon': target_lon})
+
+
+def Meteogram(plot_dir, target_lon, target_lat, t_2m_dict, asob_s_dict, aswdifd_s_dict,
+              parameters_dict):
+    r"""
+    Produce a point based product Meteogram. Currently:
+    1. 2-M Temperature
+    2. Surface Net Radiation
+    3. Surface Diffused Downards Radiation
+    :param t2m_dict: Dictionary of Data Array, key: Model Name
+    :type: dict(da)
+    :param vname:
     :param parameters_dict:
     :return:
     """
     env_dict = parameters_dict
+    models = env_dict.model_url
 
-    plot_dir = os.path.join(env_dict.local_directory[model], 'plots')
-    if not os.path.exists(plot_dir):
-        os.makedirs(plot_dir)
+    vnames = ['t_2m', 'asob_s', 'aswdifd_s']
+    plot_y_label = ['Temperature / $^oK$', 'Net Surface Radiation / W m$^{-2}$',
+                    'Downward Surface Diffused Radiation / W m$^{-2}$']
+    title_init_time = LocalTime(env_dict.model_init_time)
 
-    time = da.time
+    fig, axes = plt.subplots(3, 1, figsize=[10, 20])
+    plt.rc('font', size=20)
 
-    for i in range(time):
-        plot_time = np.datetime_as_string(da.time.values[i], unit='m')
-        plot_data = da.loc[dict(time=plot_time)]
-
-        # Define the levels to be 20, between the max and min value with 20 % margin
-        levels = np.arange(plot_data.min() - (plot_data.min() * 0.2), plot_data.max() + (plot_data.max() * 0.2), 20)
-
-        fig = plt.plot(figsize=[20, 10])
-        plt.rc('font', size=18)
-        plt.contourf(plot_data.lon, plot_data.lat, plot_data, levels=levels, cmap='RdBu_r')
-        plt.title(env_dict.long_names[vname], loc='center')
-        plt.title('Init. time: ' + env_dict.model_init_time, loc='left', size=14)
-        plt.title('Current: ' + plot_time, loc='right', size=14)
-
-
-        plt.savefig(os.path.join(plot_dir, (vname + '_' + plot_time + '.jpg')), bbox_inches='tight')
+    for i in range(len(vnames)):
+        vname = vnames[i]
+        for model in models:
+            da = locals()[vname + '_dict'][model]
+            interpoalted_da = PreprocessingMeteogram(da, target_lon, target_lat)
+            axes[i].plot(interpoalted_da.time, interpoalted_da,
+                         color=env_dict.meteogram_colour[model], linewidth=2,
+                         label=env_dict.model_long_names[model])
+            axes[i].set_title(env_dict.long_names[vname], loc='center')
+            axes[i].set_title('Init. time: ' + title_init_time, loc='left', size=14)
+            axes[i].set_ylabel(plot_y_label[i])
+            axes[i].set_xlabel('Time / s')
+            axes[i].legend()
+    plt.savefig(plot_dir, bbox_inches='tight')

@@ -61,3 +61,12 @@ class EnvParameters:
         self.target_grid = {
             'dwd_nwp': '/path/to/dwd_nwp.txt'
         }
+        self.meteogram_color = {
+            'dwd_nwp': 'red'
+        }
+        self.model_long_names = {
+            'dwd_art': 'ICON-ART',
+            'dwd_art_eu': 'ICON-ART-EU',
+            'dwd_nwp': 'ICON-NWP',
+            'dwd_nwp_eu': 'ICON-NWP-EU'
+        }
