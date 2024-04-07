@@ -25,27 +25,27 @@ class EnvParameters:
         }
         # relative path from vairable name page to list of model variable files
         self.dwd_art_variable = {
-            'taod_dust': 'TAOD_DUST/lvt/10_10/lv/0.0/r/%s/s' % (self.model_init_time),
-            'dust_total_mc': 'DUST_TOTAL_MC/lvt/150_GENV/lv/120.0/r/%s/s' % (self.model_init_time),
-            't_2m': 'T_2M/lvt/103_HG/lv/2.0/r/%s/s' % (self.model_init_time),
+            'taod_dust': 'TAOD_DUST/lvt/10_10/lv/0.0/r/%s/s/' % (self.model_init_time),
+            'dust_total_mc': 'DUST_TOTAL_MC/lvt/150_GENV/lv/120.0/r/%s/s/' % (self.model_init_time),
+            't_2m': 'T_2M/lvt/103_HG/lv/2.0/r/%s/s/' % (self.model_init_time),
             'asob_s': 'ASOB_S/lvt/1_G/lv/0.0/r/%s/s/' % (self.model_init_time),
             'aswdifd_s': 'ASWDIFD_S/lvt/1_G/lv/0.0/r/%s/s/' % (self.model_init_time)
         }
         self.dwd_art_eu_variable = {
-            'taod_dust': 'TAOD_DUST/lvt/10_10/lv/0.0/r/%s/s' % (self.model_init_time),
-            'DUST_TOTAL_MC': 'DUST_TOTAL_MC/lvt/150_GENV/lv/74.0/r/%s/s',
-            't_2m': 'T_2M/lvt/103_HG/lv/2.0/r/%s/s' % (self.model_init_time),
+            'taod_dust': 'TAOD_DUST/lvt/10_10/lv/0.0/r/%s/s/' % (self.model_init_time),
+            'dust_total_mc': 'DUST_TOTAL_MC/lvt/150_GENV/lv/74.0/r/%s/s/',
+            't_2m': 'T_2M/lvt/103_HG/lv/2.0/r/%s/s/' % (self.model_init_time),
             'asob_s': 'ASOB_S/lvt/1_G/lv/0.0/r/%s/s/' % (self.model_init_time),
             'aswdifd_s': 'ASWDIFD_S/lvt/1_G/lv/0.0/r/%s/s/' % (self.model_init_time)
         }
         self.dwd_nwp_variable = {
             'asob_s': 'asob_s/',
-            'aswdifd_s/': 'aswdifd_s/',
+            'aswdifd_s': 'aswdifd_s/',
             't_2m': 't_2m/'
         }
         self.dwd_nwp_eu_variable = {
             'asob_s': 'asob_s/',
-            'aswdifd_s/': 'aswdifd_s/',
+            'aswdifd_s': 'aswdifd_s/',
             't_2m': 't_2m/'
         }
         self.long_names = {
@@ -59,10 +59,16 @@ class EnvParameters:
             'dwd_nwp': '/path/to/icon_0005_R03B06_R.nc'
         }
         self.target_grid = {
-            'dwd_nwp': '/path/to/dwd_nwp.txt'
+            'dwd_art': '/path/to/dwd_nwp.txt',
+            'dwd_art_eu': '/path/to/dwd_nwp_eu.txt',
+            'dwd_nwp': '/path/to/dwd_nwp.txt',
+            'dwd_nwp_eu': '/path/to/dwd_nwp_eu.txt'
         }
         self.meteogram_color = {
-            'dwd_nwp': 'red'
+            'dwd_art': 'red',
+            'dwd_art_eu': 'blue',
+            'dwd_nwp': 'green',
+            'dwd_nwp_eu': 'orange'
         }
         self.model_long_names = {
             'dwd_art': 'ICON-ART',

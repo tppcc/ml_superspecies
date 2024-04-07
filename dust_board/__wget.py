@@ -93,7 +93,10 @@ def ModelLoad(model, parameters_dict):
 
     vnames = [x for x in env_dict.__getattribute__((model + '_variable'))]
     for vname in vnames:
-        local_storage_path = os.path.join(env_dict.local_directory[model], vname)
+        fdir = env_dict.local_directory[model]
+        if not os.path.exists(fdir):
+            os.makedirs(fdir)
+        local_storage_path = os.path.join(fdir, vname)
         url = urljoin(env_dict.model_url[model],
                       env_dict.__getattribute__((model + '_variable'))[vname])
         fileurls, filenames = HttpsScan(url)

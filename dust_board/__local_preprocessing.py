@@ -69,14 +69,15 @@ def Plotting(da, vname, model, parameters_dict):
         plt.title(env_dict.long_names[vname], loc='center')
         plt.title('Init. time: ' + title_init_time, loc='left', size=14)
         plt.title('Current: ' + title_current_time, loc='right', size=14)
-        plt.ylabel('Latitude / $^oN$')
-        plt.ylabel('Longitude / $^oE$')
+        plt.ylabel('Latitude [$^oN$]')
+        plt.ylabel('Longitude [$^oE$]')
 
         plt.savefig(os.path.join(plot_dir, (vname + '_' + plot_time + '.jpg')), bbox_inches='tight')
 
 
 def DataProcessing(model, parameters_dict):
     r"""
+    Entry Point 2 for dust_board routine
     Load the downloaded file, load as xarray array, concat along time and return as object
     :param model: Model name
     :param parameters_dict: class of dictionary of Environmental Parameters
@@ -104,7 +105,7 @@ def DataProcessing(model, parameters_dict):
 
         Plotting(locals()[vname], vname, model, env_dict)
 
-    return [locals()[x] for x in vnames]
+    return {x: locals()[x] for x in vnames}
 
 
 def PreprocessingMeteogram(da, target_lon, target_lat):
@@ -125,6 +126,7 @@ def PreprocessingMeteogram(da, target_lon, target_lat):
 def Meteogram(plot_dir, target_lon, target_lat, t_2m_dict, asob_s_dict, aswdifd_s_dict,
               parameters_dict):
     r"""
+    Entry Point 3 for dust_board routine
     Produce a point based product Meteogram. Currently:
     1. 2-M Temperature
     2. Surface Net Radiation
@@ -139,8 +141,8 @@ def Meteogram(plot_dir, target_lon, target_lat, t_2m_dict, asob_s_dict, aswdifd_
     models = env_dict.model_url
 
     vnames = ['t_2m', 'asob_s', 'aswdifd_s']
-    plot_y_label = ['Temperature / $^oK$', 'Net Surface Radiation / W m$^{-2}$',
-                    'Downward Surface Diffused Radiation / W m$^{-2}$']
+    plot_y_label = ['Temperature [$^oK$]', 'Net Surface Radiation [W m$^{-2}$]',
+                    'Downward Surface Diffused Radiation [W m$^{-2}$]']
     title_init_time = LocalTime(env_dict.model_init_time)
 
     fig, axes = plt.subplots(3, 1, figsize=[10, 20])
@@ -151,12 +153,15 @@ def Meteogram(plot_dir, target_lon, target_lat, t_2m_dict, asob_s_dict, aswdifd_
         for model in models:
             da = locals()[vname + '_dict'][model]
             interpoalted_da = PreprocessingMeteogram(da, target_lon, target_lat)
+            # Convert from K to C if var = t_2m
+            if i == 0:
+                interpoalted_da = interpoalted_da - 273.15
             axes[i].plot(interpoalted_da.time, interpoalted_da,
                          color=env_dict.meteogram_colour[model], linewidth=2,
                          label=env_dict.model_long_names[model])
             axes[i].set_title(env_dict.long_names[vname], loc='center')
             axes[i].set_title('Init. time: ' + title_init_time, loc='left', size=14)
             axes[i].set_ylabel(plot_y_label[i])
-            axes[i].set_xlabel('Time / s')
+            axes[i].set_xlabel('Time [h]')
             axes[i].legend()
     plt.savefig(plot_dir, bbox_inches='tight')
