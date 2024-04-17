@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytz
 import xarray as xr
+import datetime
 
 
 def LocalTime(time_obj):
@@ -24,7 +25,8 @@ def Grib2nc(fpath, source_grid, target_grid):
     os.system('module load cdo')
     # Assign grid to
     os.system(
-        f'cdo -f nc4 -remapnn,f{target_grid} -setgrid,f{source_grid} icon_pollen_description.txt f{fpath} f{fpath}.nc')
+        # f'cdo -f nc4 -remapnn,f{target_grid} -setgrid,f{source_grid} icon_pollen_description.txt f{fpath} f{fpath}.nc')
+        f'cdo -f nc4 -remapnn,{target_grid} -setgrid,{source_grid} {fpath} {fpath}.nc')
 
     fpath_nc = fpath + '.nc'
 
@@ -47,7 +49,7 @@ def Plotting(da, vname, model, parameters_dict):
 
     time = da.time
 
-    for i in range(time):
+    for i in range(len(time)):
         plot_time = np.datetime_as_string(da.time.values[i], unit='m')
         plot_data = da.loc[dict(time=plot_time)]
 
@@ -55,7 +57,7 @@ def Plotting(da, vname, model, parameters_dict):
         if vname == 't_2m':
             plot_data = plot_data - 273.15
 
-        title_init_time = LocalTime(env_dict.model_init_time)
+        title_init_time = LocalTime(datetime.datetime.fromisoformat(env_dict.model_init_time))
         ctime = da.time.values[i].astype('datetime64[s]').tolist()
         title_current_time = LocalTime(ctime)
 
@@ -92,12 +94,17 @@ def DataProcessing(model, parameters_dict):
     vnames = [x for x in env_dict.__getattribute__((model + '_variable'))]
     for vname in vnames:
         fdirs = os.path.join(env_dict.local_directory[model], vname)
-        fdirs = [x for x in os.listdir(fdirs) if '.grib2' in x]
+        fnames = [x for x in os.listdir(fdirs) if '.grib2' in x and '.nc' not in x]
+        fnames.sort()
+        fnames = [os.path.join(fdirs, x) for x in fnames]
 
         da_list = []
-        for fpath in fdirs:
+        for fpath in fnames:
+            # print(fpath)
             fpath_nc = Grib2nc(fpath, source_grid, target_grid)
             da = xr.load_dataset(fpath_nc, engine='netcdf4')
+            # Fetch dataset keys (variable names) and access the first variable in the dataset,
+            # pass to list for plotting. Note: Only one variable should be contained in the file.
             varkey = [x for x in da.keys()]
             da_list.append(da.__getattr__(varkey[0]))
 
@@ -117,7 +124,7 @@ def PreprocessingMeteogram(da, target_lon, target_lat):
     :type: float
     :param target_lat:
     :type: float
-    :return: Interpolated xr.DataArray
+    :return: interpolated_da xr.DataArray
     :rtype: xr.DataArray
     """
     return da.interp({'lat': target_lat, 'lon': target_lon})
@@ -143,7 +150,7 @@ def Meteogram(plot_dir, target_lon, target_lat, t_2m_dict, asob_s_dict, aswdifd_
     vnames = ['t_2m', 'asob_s', 'aswdifd_s']
     plot_y_label = ['Temperature [$^oK$]', 'Net Surface Radiation [W m$^{-2}$]',
                     'Downward Surface Diffused Radiation [W m$^{-2}$]']
-    title_init_time = LocalTime(env_dict.model_init_time)
+    title_init_time = LocalTime(datetime.datetime.fromisoformat(env_dict.model_init_time))
 
     fig, axes = plt.subplots(3, 1, figsize=[10, 20])
     plt.rc('font', size=20)
@@ -152,11 +159,11 @@ def Meteogram(plot_dir, target_lon, target_lat, t_2m_dict, asob_s_dict, aswdifd_
         vname = vnames[i]
         for model in models:
             da = locals()[vname + '_dict'][model]
-            interpoalted_da = PreprocessingMeteogram(da, target_lon, target_lat)
+            interpolated_da = PreprocessingMeteogram(da, target_lon, target_lat)
             # Convert from K to C if var = t_2m
             if i == 0:
-                interpoalted_da = interpoalted_da - 273.15
-            axes[i].plot(interpoalted_da.time, interpoalted_da,
+                interpolated_da = interpolated_da - 273.15
+            axes[i].plot(interpolated_da.time, interpolated_da,
                          color=env_dict.meteogram_colour[model], linewidth=2,
                          label=env_dict.model_long_names[model])
             axes[i].set_title(env_dict.long_names[vname], loc='center')

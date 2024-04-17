@@ -12,6 +12,7 @@ for model in environmental_dict.model_url:
     ModelLoad(model, environmental_dict)
     locals()['da_' + model] = DataProcessing(model, environmental_dict)
 
+
 ############# End of adaptive script
 
 # Plotting Meteogram
@@ -34,4 +35,4 @@ asob_s_dict = {
     'dwd_art_eu': da_dwd_art_eu['asob_s']
 }
 
-Meteogram('path/to/meteogram.jpg', 30, 60, t_2m_dict, asob_s_dict, aswdifd_s_dict, environmental_dict)
+Meteogram('/Users/corneliustai/PycharmProjects/ml_superspecies/dust_board/test_meteogram.jpg', 30, 60, t_2m_dict, asob_s_dict, aswdifd_s_dict, environmental_dict)

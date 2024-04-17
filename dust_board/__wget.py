@@ -94,12 +94,19 @@ def ModelLoad(model, parameters_dict):
     vnames = [x for x in env_dict.__getattribute__((model + '_variable'))]
     for vname in vnames:
         fdir = env_dict.local_directory[model]
+        # Create local direcotry if not exists
         if not os.path.exists(fdir):
             os.makedirs(fdir)
         local_storage_path = os.path.join(fdir, vname)
+        # Create local direcotry if not exists
+        if not os.path.exists(local_storage_path):
+            os.makedirs(local_storage_path)
         url = urljoin(env_dict.model_url[model],
                       env_dict.__getattribute__((model + '_variable'))[vname])
         fileurls, filenames = HttpsScan(url)
+        # Remove ../ path from scaned list
+        fileurls = fileurls[1::]
+        filenames = filenames[1::]
         for i in range(len(fileurls)):
             status = RequestWebFile(fileurls[i], filenames[i], local_storage_path)
             assert status == True, "Web request failed"
