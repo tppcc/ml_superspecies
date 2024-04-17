@@ -43,7 +43,7 @@ def Plotting(da, vname, model, parameters_dict):
     """
     env_dict = parameters_dict
 
-    plot_dir = os.path.join(env_dict.local_directory[model], 'plots')
+    plot_dir = os.path.join(env_dict.local_directory[model], vname, 'plots')
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
@@ -51,7 +51,7 @@ def Plotting(da, vname, model, parameters_dict):
 
     for i in range(len(time)):
         plot_time = np.datetime_as_string(da.time.values[i], unit='m')
-        plot_data = da.loc[dict(time=plot_time)]
+        plot_data = da.loc[dict(time=plot_time)].squeeze()
 
         # Convert K to C
         if vname == 't_2m':
