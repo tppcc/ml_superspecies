@@ -78,6 +78,7 @@ def Plotting(da, vname, model, parameters_dict):
         plt.savefig(os.path.join(plot_dir, vname,f'{vname}_{plot_time}.jpg'), bbox_inches='tight')
         plt.close()
 
+
 def DataProcessing(model, parameters_dict):
     r"""
     Entry Point 2 for dust_board routine
@@ -92,6 +93,10 @@ def DataProcessing(model, parameters_dict):
     source_grid = env_dict.source_grid[model]
     target_grid = env_dict.target_grid[model]
 
+    # Use an explicit dictionary to store variables instead of using locals()
+    data_arrays = {}
+
+    # Collect variable names for the given model
     vnames = [x for x in env_dict.__getattribute__((model + '_variable'))]
     for vname in vnames:
         fdirs = os.path.join(env_dict.local_directory[model], vname)
@@ -101,19 +106,19 @@ def DataProcessing(model, parameters_dict):
 
         da_list = []
         for fpath in fnames:
-            # print(fpath)
-            fpath_nc = Grib2nc(fpath, source_grid, target_grid)
+            fpath_nc = Grib2nc(fpath, source_grid,
+                               target_grid)  # Assuming Grib2nc is a function defined elsewhere
             da = xr.load_dataset(fpath_nc, engine='netcdf4')
-            # Fetch dataset keys (variable names) and access the first variable in the dataset,
-            # pass to list for plotting. Note: Only one variable should be contained in the file.
-            varkey = [x for x in da.keys()]
-            da_list.append(da.__getattr__(varkey[0]))
+            varkey = list(da.keys())
+            da_list.append(da[varkey[0]])
 
-        locals()[vname] = xr.concat(da_list, dim='time')
+        # Concatenate along time dimension and store in dictionary
+        data_arrays[vname] = xr.concat(da_list, dim='time')
 
-        Plotting(locals()[vname], vname, model, env_dict)
+        # Assuming Plotting is a function defined elsewhere that you want to use
+        Plotting(data_arrays[vname], vname, model, env_dict)
 
-    return {x: locals()[x] for x in vnames}
+    return data_arrays
 
 
 def PreprocessingMeteogram(da, target_lon, target_lat):
