@@ -1,5 +1,5 @@
 import os
-
+import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
 import pytz
@@ -11,7 +11,8 @@ def LocalTime(time_obj):
     r"""
     Convert DateTime object to <DOW>, <DD> <MM> <YY> <HH><Z>
     :param time_obj:
-    :return:
+    :return: String of time in <DOW>, <DD> <MM> <YY> <HH><Z> CEST
+    :rtype: str
     """
     # Convert UTC to CEST (Central European Summer Time)
     cest = pytz.timezone('Europe/Berlin')
@@ -39,7 +40,7 @@ def Plotting(da, vname, model, parameters_dict):
     :param da:
     :param model:
     :param parameters_dict:
-    :return:
+    :return: None
     """
     env_dict = parameters_dict
 
@@ -62,20 +63,20 @@ def Plotting(da, vname, model, parameters_dict):
         title_current_time = LocalTime(ctime)
 
         # Define the levels to be 20, between the max and min value with 20 % margin
-        levels = np.arange(plot_data.min() - (plot_data.min() * 0.2),
-                           plot_data.max() + (plot_data.max() * 0.2), 20)
+        levels = np.linspace(plot_data.min() - (plot_data.min() * 0.2),
+                             plot_data.max() + (plot_data.max() * 0.2), 20)
 
-        fig = plt.plot(figsize=[20, 10])
-        plt.rc('font', size=18)
-        plt.contourf(plot_data.lon, plot_data.lat, plot_data, levels=levels, cmap='RdBu_r')
-        plt.title(env_dict.long_names[vname], loc='center')
-        plt.title('Init. time: ' + title_init_time, loc='left', size=14)
-        plt.title('Current: ' + title_current_time, loc='right', size=14)
-        plt.ylabel('Latitude [$^oN$]')
-        plt.ylabel('Longitude [$^oE$]')
+        plt.figure(figsize=[12, 6])
+        cf = plt.contourf(plot_data.lon, plot_data.lat, plot_data, levels=levels, cmap='RdBu_r')
+        plt.title(f'{env_dict.long_names[vname]}', loc='center')
+        plt.title('Init. time: ' + title_init_time, loc='left', fontsize=10)
+        plt.title('Current: ' + title_current_time, loc='right', fontsize=10)
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        plt.colorbar(cf, shrink=0.8, extend='both')
 
-        plt.savefig(os.path.join(plot_dir, (vname + '_' + plot_time + '.jpg')), bbox_inches='tight')
-
+        plt.savefig(os.path.join(plot_dir, f'{vname}_{plot_time}.jpg'), bbox_inches='tight')
+        plt.close()
 
 def DataProcessing(model, parameters_dict):
     r"""
@@ -153,7 +154,7 @@ def Meteogram(plot_dir, target_lon, target_lat, t_2m_dict, asob_s_dict, aswdifd_
     title_init_time = LocalTime(datetime.datetime.fromisoformat(env_dict.model_init_time))
 
     fig, axes = plt.subplots(3, 1, figsize=[10, 20])
-    plt.rc('font', size=20)
+    #plt.rc('font', size=20)
 
     for i in range(len(vnames)):
         vname = vnames[i]

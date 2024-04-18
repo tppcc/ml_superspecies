@@ -47,7 +47,7 @@ class EnvParameters:
             'dwd_nwp': '/Users/corneliustai/PycharmProjects/ml_superspecies/dust_board/dwd_nwp.txt',
             'dwd_nwp_eu': '/path/to/dwd_nwp_eu.txt'
         }
-        self.meteogram_color = {
+        self.meteogram_colour = {
             'dwd_art': 'red',
             'dwd_art_eu': 'blue',
             'dwd_nwp': 'green',
