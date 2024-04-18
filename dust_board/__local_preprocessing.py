@@ -75,7 +75,7 @@ def Plotting(da, vname, model, parameters_dict):
         plt.ylabel('Latitude')
         plt.colorbar(cf, shrink=0.8, extend='both')
 
-        plt.savefig(os.path.join(plot_dir, f'{vname}_{plot_time}.jpg'), bbox_inches='tight')
+        plt.savefig(os.path.join(plot_dir, vname,f'{vname}_{plot_time}.jpg'), bbox_inches='tight')
         plt.close()
 
 def DataProcessing(model, parameters_dict):
